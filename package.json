@@ -1,17 +1,28 @@
 {
   "name": "electron-chat",
   "version": "0.1.0",
+  "main": "main.js",
+  "homepage": "./",
   "private": true,
   "dependencies": {
+    "@material-ui/core": "^3.9.2",
+    "@material-ui/icons": "^3.0.2",
+    "mobx": "^5.9.0",
+    "mobx-react": "^5.4.3",
+    "moment": "^2.24.0",
+    "node-sass": "^4.11.0",
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
-    "react-scripts": "2.1.5"
+    "react-scripts": "2.1.5",
+    "socket.io-client": "^2.2.0"
   },
   "scripts": {
+    "electron": "electron .",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "dev": "set ELECTRON_START_URL=http://localhost:3000 && electron ."
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -21,5 +32,9 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "electron": "^4.0.5",
+    "electron-devtools-installer": "^2.2.4"
+  }
 }
