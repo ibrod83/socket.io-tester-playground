@@ -2,7 +2,6 @@
   "name": "electron-chat",
   "version": "0.1.0",
   "main": "main.js",
-  "homepage": "./",
   "private": true,
   "dependencies": {
     "@material-ui/core": "^3.9.2",
