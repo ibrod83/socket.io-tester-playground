@@ -49,7 +49,7 @@ export default class AddEvent extends React.Component {
                     variant="outlined"
                 />
                 <Button disabled={!this.props.connected} type="submit" variant="contained" color="primary" >
-                    Register event
+                    Register
                 </Button>
             </form>
 

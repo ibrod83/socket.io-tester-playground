@@ -1,10 +1,10 @@
 import React from 'react';
-import { observer } from 'mobx-react';
+// import { observer } from 'mobx-react';
 import CardContent from '@material-ui/core/CardContent';
 import Card from '@material-ui/core/Card';
 import Typography from '@material-ui/core/Typography';
-import { withStyles } from '@material-ui/core/styles';
-
+// import { withStyles } from '@material-ui/core/styles';
+import ObjectItem from './ObjectItem';
 
 
 
@@ -17,13 +17,7 @@ const getContent = (message) => {
                     Type: Object
                 </Typography>
                 <Typography color="textPrimary" gutterBottom>
-                    {Object.keys(message).map((key) => {
-                        return (
-
-                            <p><span >{key}: </span><span>{message[key]}</span></p>
-
-                        )
-                    })}
+                   <ObjectItem object={message}></ObjectItem>
                 </Typography>
             </div>
 
@@ -59,7 +53,7 @@ const getContent = (message) => {
 }
 
 const Item = (props) => {
-    console.log('props',props)
+    // console.log('props',props)
 
 
     return (

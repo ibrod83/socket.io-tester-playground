@@ -108,7 +108,7 @@ class Header extends React.Component {
                                 name="address"
                                 value={this.state.address}
                                 onChange={this.onChange}
-                                placeholder="localhost:3000"
+                                placeholder="localhost:3001"
                                 classes={{
                                     root: classes.inputRoot,
                                     input: classes.inputInput,
