@@ -6,6 +6,8 @@ import Button from '@material-ui/core/Button';
 import SearchIcon from '@material-ui/icons/Search';
 import CastConnectedIcon from '@material-ui/icons/CastConnected';
 import { fade } from '@material-ui/core/styles/colorManipulator';
+import Typography from '@material-ui/core/Typography';
+
 
 import InputBase from '@material-ui/core/InputBase';
 
@@ -51,8 +53,8 @@ const styles = theme => (
             width: '100%',
         },
         inputInput: {
-           
-            
+
+
             paddingTop: theme.spacing.unit,
             paddingRight: theme.spacing.unit,
             paddingBottom: theme.spacing.unit,
@@ -92,17 +94,33 @@ class Header extends React.Component {
         this.props.onDisconnectSubmit();
     }
 
+    renderButton = () => {
+        switch (this.props.connectionStatus) {
+            case 'connected':
+                return <Button type="submit" color="inherit">Disconnect</Button>;
+            case 'reconnecting':
+                return <Typography color="inherit" variant="subtitle1" >Reconnecting...</Typography>;
+            case 'disconnected':
+                return <Button type="submit" color="inherit">Connect</Button>;
+            case 'connecting':
+                return <Typography color="inherit" variant="subtitle1" >Connecting...</Typography>;
+            // default:
+
+        }
+
+    }
+
     render() {
         const { classes } = this.props;
         return (
-            <form autoComplete="off" onSubmit={this.props.connected ? this.onDisconnectSubmit :  this.onConnectSubmit} className={classes.root}>
+            <form autoComplete="off" onSubmit={this.props.connectionStatus === 'connected' ? this.onDisconnectSubmit : this.onConnectSubmit} className={classes.root}>
                 <AppBar position="static">
                     <Toolbar>
 
                         <div className={classes.search}>
                             <div className={classes.searchIcon}>
-                                {this.props.connected ?  <CastConnectedIcon></CastConnectedIcon>: <SearchIcon></SearchIcon> }
-                               
+                                {this.props.connectionStatus === 'connected' ? <CastConnectedIcon></CastConnectedIcon> : <SearchIcon></SearchIcon>}
+
                             </div>
                             <InputBase
                                 name="address"
@@ -115,7 +133,8 @@ class Header extends React.Component {
                                 }}
                             />
                         </div>
-                        <Button type="submit" color="inherit">{this.props.connected ? 'Disconnect' : 'Connect'}</Button>
+                        {this.renderButton()}
+
                     </Toolbar>
                 </AppBar>
             </form>

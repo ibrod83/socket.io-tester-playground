@@ -1,5 +1,5 @@
-$main:#3f51b5;
-$main_65:#7986d0;
+$main:#2196f3;
+$light:#4dabf5;
 
 .btn {
     border-radius: 0px;
@@ -27,7 +27,7 @@ html {
     }
     /* Handle */
     .special_scroll::-webkit-scrollbar-thumb {
-        background: $main_65;
+        background: $light;
         border-radius: 10px;
     }
 
