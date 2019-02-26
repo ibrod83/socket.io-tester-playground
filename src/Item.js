@@ -52,46 +52,34 @@ const getContent = (message) => {
     }
 }
 
-const Item = (props) => {
-    // console.log('props',props)
+class Item extends React.PureComponent {
+    // console.log('item rendering!',props)
 
-
-    return (
-
-
-
-        <Card >
-            <CardContent style={{padding:'15px'}}>
-                <Typography style={{float:'right'}}   color="textSecondary" gutterBottom>
-                    {props.time}
-                </Typography>
-                <Typography  color="primary" gutterBottom>
-                    {props.owner ? 'Sent' : 'Received'} event: {props.eventName}
-                </Typography>
-                {getContent(props.data)}
-            </CardContent>
-
-
-           
-        </Card>
-    )
-
-    // return (
+    render(){
+        console.log('item rendering!',this.props)
+        return (
 
 
 
-    //     <div style={{ backgroundColor: '#3f51b5', borderRadius: '10px' }}>
-    //         <Typography style={{ color: 'white' }} inline color="textSecondary" gutterBottom>
-    //             {props.time}
-    //         </Typography>
-    //         <Typography style={{ color: 'white' }} color="primary" gutterBottom>
-    //             {props.eventName}
-    //         </Typography>
+            <Card >
+                <CardContent style={{padding:'15px'}}>
+                    <Typography style={{float:'right'}}   color="textSecondary" gutterBottom>
+                        {this.props.time}
+                    </Typography>
+                    <Typography  color="primary" gutterBottom>
+                        {this.props.owner ? 'Sent' : 'Received'} event: {this.props.eventName}
+                    </Typography>
+                    {getContent(this.props.data)}
+                </CardContent>
+    
+    
+               
+            </Card>
+        )
+    }
+   
 
-
-    //         {getContent(props.data)}
-    //     </div>
-    // )
+    
 
 }
 
@@ -99,17 +87,17 @@ export default Item;
 
 
 
-// export default (props) => {
-//     if (typeof props.data === 'object') {
+// export default (this.props) => {
+//     if (typeof this.props.data === 'object') {
 
 //         return (
 //             <p>
-//                 <span style={{ color: 'navy' }}>{props.time}</span>
-//                 {Object.keys(props.data).map((key) => {
+//                 <span style={{ color: 'navy' }}>{this.props.time}</span>
+//                 {Object.keys(this.props.data).map((key) => {
 //                     return (
 //                         <p>
 
-//                             <span onClick={props.onClick}>{key}: </span><span>{props.data[key]}</span>
+//                             <span onClick={this.props.onClick}>{key}: </span><span>{this.props.data[key]}</span>
 //                         </p>
 //                     )
 //                 })}
@@ -121,7 +109,7 @@ export default Item;
 //     } else {
 //         return (
 
-//             <p> <span style={{ color: 'navy' }}>{props.time}</span> {props.data}</p>
+//             <p> <span style={{ color: 'navy' }}>{this.props.time}</span> {this.props.data}</p>
 //         )
 //     }
 

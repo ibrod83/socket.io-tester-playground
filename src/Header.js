@@ -7,6 +7,7 @@ import SearchIcon from '@material-ui/icons/Search';
 import CastConnectedIcon from '@material-ui/icons/CastConnected';
 import { fade } from '@material-ui/core/styles/colorManipulator';
 import Typography from '@material-ui/core/Typography';
+import Loader from './Loader'
 
 
 import InputBase from '@material-ui/core/InputBase';
@@ -17,13 +18,7 @@ const styles = theme => (
         root: {
             flexGrow: 1,
         },
-        grow: {
-            flexGrow: 1,
-        },
-        menuButton: {
-            marginLeft: -12,
-            marginRight: 20,
-        },
+
         search: {
             position: 'relative',
             borderRadius: theme.shape.borderRadius,
@@ -82,14 +77,31 @@ class Header extends React.Component {
         })
     }
 
-    onConnectSubmit = (e) => {
+    onSubmit = (e) => {
         e.preventDefault();
+        switch (this.props.connectionStatus) {
+            case 'connected':
+            case 'reconnecting':
+            case 'connecting':
+                this.onDisconnectSubmit();
+
+                break;
+            case 'disconnected':
+                this.onConnectSubmit();
+                break;
+            default:
+                break;
+        }
+    }
+
+    onConnectSubmit = (e) => {
+        // e.preventDefault();
         // alert(this.state.address)
         this.props.onConnectSubmit(this.state.address);
     }
 
     onDisconnectSubmit = (e) => {
-        e.preventDefault();
+        // e.preventDefault();
         // alert(this.state.address)
         this.props.onDisconnectSubmit();
     }
@@ -99,27 +111,44 @@ class Header extends React.Component {
             case 'connected':
                 return <Button type="submit" color="inherit">Disconnect</Button>;
             case 'reconnecting':
-                return <Typography color="inherit" variant="subtitle1" >Reconnecting...</Typography>;
+            case 'connecting':
+                return <Button type="submit" color="inherit">Cancel</Button>;
             case 'disconnected':
                 return <Button type="submit" color="inherit">Connect</Button>;
-            case 'connecting':
-                return <Typography color="inherit" variant="subtitle1" >Connecting...</Typography>;
+            // case 'connecting':
+            //     return <Typography color="inherit" variant="subtitle1" >Connecting...</Typography>;
             // default:
 
         }
 
     }
 
+    renderStatus = () => {
+        switch (this.props.connectionStatus) {
+
+            case 'reconnecting':
+            case 'connecting':
+                return <Loader></Loader>;
+            case 'disconnected':
+                return <SearchIcon></SearchIcon>;
+            case 'connected':
+               return <CastConnectedIcon></CastConnectedIcon>;
+            default:
+                return '';
+
+        }
+    }
+
     render() {
         const { classes } = this.props;
         return (
-            <form autoComplete="off" onSubmit={this.props.connectionStatus === 'connected' ? this.onDisconnectSubmit : this.onConnectSubmit} className={classes.root}>
+            <form autoComplete="off" onSubmit={this.onSubmit} className={classes.root}>
                 <AppBar position="static">
                     <Toolbar>
 
                         <div className={classes.search}>
                             <div className={classes.searchIcon}>
-                                {this.props.connectionStatus === 'connected' ? <CastConnectedIcon></CastConnectedIcon> : <SearchIcon></SearchIcon>}
+                                {this.renderStatus()}
 
                             </div>
                             <InputBase

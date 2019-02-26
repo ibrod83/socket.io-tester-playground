@@ -10,7 +10,7 @@ const styles={
 }
 
 export default (props) => {
-    console.log('events from props',props.events)
+    // console.log('events from props',props.events)
     return(
         <div >
         <Typography variant="subtitle1" gutterBottom>

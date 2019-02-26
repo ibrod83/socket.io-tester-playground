@@ -30,7 +30,8 @@ const styles = theme => ({
 
 class SendMessage extends React.Component {
     state = {
-        event: process.env.NODE_ENV ===  'development' ? "yoyo" : '',
+        // event: process.env.NODE_ENV ===  'development' ? "yoyo" : '',
+        event: "",
         message: "",
         tab: 'String',
         error: false

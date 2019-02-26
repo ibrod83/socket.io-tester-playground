@@ -53,9 +53,9 @@ export default class App extends Component {
 
   componentDidMount() {
 
-    if (process.env.NODE_ENV === 'development') {
-      this.addDummyDataForDevelopment();
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   this.addDummyDataForDevelopment();
+    // }
 
   }
 
@@ -71,13 +71,17 @@ export default class App extends Component {
   }
 
   registerEvent = (eventName) => {
+    console.log('registering event:',eventName)
     if (socket) {
+      socket.off(eventName);
       socket.on(eventName, (data) => {
+        console.log('on:',eventName)
         this.addItem(eventName, data, false)
       })
-      this.setState({
-        registeredEvents: { ...this.state.registeredEvents, [eventName]: { name: eventName } }
-      })
+      this.setState((state)=>({
+        registeredEvents: { ...state.registeredEvents, [eventName]: { name: eventName } }
+      }))
+     
     }
   }
 
@@ -98,6 +102,7 @@ export default class App extends Component {
   }
 
   onDisconnectSubmit = () => {
+    console.log('disconnected manually')
     socket.disconnect();
     this.setState({ connectionStatus: 'disconnected' })
   }
@@ -139,7 +144,7 @@ export default class App extends Component {
 
 
   connect = (address) => {
-
+    console.log('connecting');
     this.setState(()=>({
       connectionStatus:'connecting'
     }))
@@ -147,39 +152,22 @@ export default class App extends Component {
     if (socket) {
       socket.disconnect();
     }
-
+    
     socket = window.socket = io(address);
 
-    socket.on('connect', () => {
+      socket.on('connect', () => {
       console.log('connected!')
       this.setState({
-        connectionStatus: 'connected',
-        //  registeredEvents:{}
+        connectionStatus: 'connected',     
       })
-
-      if (Object.keys(this.state.registeredEvents).length > 0) {
-        console.log('re-registering events');
-        for (let event of Object.keys(this.state.registeredEvents)) {
-          this.registerEvent(event);
-        }
-      }
-
-      if (process.env.NODE_ENV === 'development') {
-        this.registerEvent('welcome')
-        this.registerEvent('welcome2')
-      }
-
-
-
 
     });
 
     socket.on('disconnect', (reason) => {
       console.log('reason', reason)
-      // if (reason === 'io server disconnect') {
-      //   // the disconnection was initiated by the server, you need to reconnect manually
-      //   socket.connect();
-      // }
+      if (reason === 'io server disconnect') {
+        socket.disconnect();
+      }
       // else the socket will automatically try to reconnect
     });
 
@@ -194,6 +182,7 @@ export default class App extends Component {
     });
 
     socket.on('reconnect', (attemptNumber) => {
+      console.log('reconnected');
       this.setState(()=>{
         return {
           alertContent:'',
@@ -217,12 +206,23 @@ export default class App extends Component {
     // })
 
     socket.on('reconnecting', (attemptNumber) => {
+      console.log('reconnecting');
       this.setState(()=>{
         return {          
           connectionStatus:'reconnecting',          
         }
       })
     });
+
+    if (Object.keys(this.state.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
+      console.log('re-registering events');
+      for (let event of Object.keys(this.state.registeredEvents)) {
+        this.registerEvent(event);
+      }
+    }
+
+
+
   }
 
   getTime = () => {
@@ -317,7 +317,7 @@ export default class App extends Component {
           }}
           variant="error"
           open={this.state.alertOpen}
-          autoHideDuration={10000000}
+          autoHideDuration={4000}
           onClose={this.handleAlertClose}
           ContentProps={{
             'aria-describedby': 'message-id',

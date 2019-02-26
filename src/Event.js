@@ -13,7 +13,7 @@ const styles = theme => ({
 
 const Event = (props) => {
     const { classes } = props;
-
+    // console.log('event rendering!')
     return (
         <Chip
             label={props.name}
