@@ -4,6 +4,10 @@ import Snackbar from '@material-ui/core/Snackbar';
 import IconButton from '@material-ui/core/IconButton';
 import CloseIcon from '@material-ui/icons/Close';
 import Typography from '@material-ui/core/Typography';
+import Checkbox from '@material-ui/core/Checkbox';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+
+
 import Items from './Items';
 import RegisteredEvents from './RegisteredEvents';
 import uuid from 'uuid';
@@ -42,12 +46,14 @@ export default class App extends Component {
     address: "",
     eventName: "",
     items: [],
-    tab: 0,
     registeredEvents: {},
+    anonymousEvents: {},
     connectionStatus: 'disconnected',
     alertOpen: false,
-    alertContent:''
+    alertContent: '',
+    allEventsChecked: false,
   }
+
 
 
 
@@ -71,18 +77,47 @@ export default class App extends Component {
   }
 
   registerEvent = (eventName) => {
-    console.log('registering event:',eventName)
+    console.log('registering event:', eventName)
     if (socket) {
       socket.off(eventName);
       socket.on(eventName, (data) => {
-        console.log('on:',eventName)
+        console.log('on:', eventName)
         this.addItem(eventName, data, false)
       })
-      this.setState((state)=>({
+      this.setState((state) => ({
         registeredEvents: { ...state.registeredEvents, [eventName]: { name: eventName } }
       }))
-     
+
     }
+  }
+
+  registerAnonymousEvent = (eventName) => {
+    console.log('registering anonymous event:', eventName)
+    if (socket) {
+      socket.off(eventName);
+      socket.on(eventName, (data) => {
+        console.log('on:', eventName)
+        this.addItem(eventName, data, false)
+      })
+      // debugger;
+      this.setState((state) => ({
+        anonymousEvents: { ...state.anonymousEvents, [eventName]: { name: eventName } }
+      }))
+
+    }
+  }
+
+  unregisterAnonymousEvents = () => {
+    // debugger;
+    for (let event in this.state.anonymousEvents) {
+      if(!this.state.registeredEvents.hasOwnProperty(event)){
+        socket.off(event)
+      }
+      
+    }
+    this.setState((state) => ({
+      anonymousEvents: {}
+    }))
   }
 
   addItem = (eventName, data, owner) => {
@@ -145,21 +180,24 @@ export default class App extends Component {
 
   connect = (address) => {
     console.log('connecting');
-    this.setState(()=>({
-      connectionStatus:'connecting'
+    this.setState(() => ({
+      connectionStatus: 'connecting'
     }))
 
     if (socket) {
       socket.disconnect();
     }
-    
-    socket = window.socket = io(address);
 
-      socket.on('connect', () => {
+    socket = window.socket = io(address);
+    this.originalOnevent = socket.onevent;
+    
+    socket.on('connect', () => {
       console.log('connected!')
       this.setState({
-        connectionStatus: 'connected',     
+        connectionStatus: 'connected',
       })
+
+
 
     });
 
@@ -173,21 +211,21 @@ export default class App extends Component {
 
     socket.on('connect_error', (error) => {
       console.log('Error connecting!')
-      this.setState(()=>{
+      this.setState(() => {
         return {
-          alertContent:'Error connecting to the server',
-          alertOpen:true
+          alertContent: 'Error connecting to the server',
+          alertOpen: true
         }
       })
     });
 
     socket.on('reconnect', (attemptNumber) => {
       console.log('reconnected');
-      this.setState(()=>{
+      this.setState(() => {
         return {
-          alertContent:'',
-          connectionStatus:'connected',
-          alertOpen:false
+          alertContent: '',
+          connectionStatus: 'connected',
+          alertOpen: false
         }
       })
     });
@@ -207,9 +245,9 @@ export default class App extends Component {
 
     socket.on('reconnecting', (attemptNumber) => {
       console.log('reconnecting');
-      this.setState(()=>{
-        return {          
-          connectionStatus:'reconnecting',          
+      this.setState(() => {
+        return {
+          connectionStatus: 'reconnecting',
         }
       })
     });
@@ -225,6 +263,37 @@ export default class App extends Component {
 
   }
 
+  listenToAllEvents = (on) => {
+    const that = this;
+
+    if (on) {
+
+      socket.onevent = function (packet) {
+        const eventName = packet.data[0];
+        const eventData = packet.data[1];
+
+        that.registerAnonymousEvent(eventName, eventData)
+        console.log('originalevent from within', that.originalOnevent)
+        that.originalOnevent.call(this, packet);    // original call
+
+      };
+
+    } else {
+      socket.onevent = that.originalOnevent;
+
+      that.unregisterAnonymousEvents()
+
+      // that.originalOnevent.call(this,packet);
+      console.log(that.originalOnevent)
+      // that.setState({anonymousEvents:{}});
+      // socket.off('*')
+      // debugger;
+      // console.log('originalevent from outisde',originalOnevent)
+      // socket.onevent = window.originalOnevent =  originalOnevent;
+    }
+
+  }
+
   getTime = () => {
     // debugger;
     // console.log('unix',unix)
@@ -237,9 +306,7 @@ export default class App extends Component {
 
   }
 
-  handleTabChange = (event, tab) => {
-    this.setState({ tab });
-  };
+
 
   handleAlertClose = (event, reason) => {
     if (reason === 'clickaway') {
@@ -249,6 +316,10 @@ export default class App extends Component {
     this.setState({ alertOpen: false });
   };
 
+  handleAllEventsCheck = name => event => {
+    this.setState({ [name]: event.target.checked });
+    this.listenToAllEvents(event.target.checked)
+  };
 
   render() {
 
@@ -258,7 +329,7 @@ export default class App extends Component {
 
       <MuiThemeProvider theme={theme}>
         <div id="wrapper">
-          <Header  connectionStatus={this.state.connectionStatus} onDisconnectSubmit={this.onDisconnectSubmit} onConnectSubmit={this.onConnectSubmit}></Header>
+          <Header connectionStatus={this.state.connectionStatus} onDisconnectSubmit={this.onDisconnectSubmit} onConnectSubmit={this.onConnectSubmit}></Header>
 
           <div id="main">
 
@@ -273,6 +344,20 @@ export default class App extends Component {
 
               <div id="events">
                 <Typography gutterBottom variant="h6">Register events</Typography>
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={this.state.handleAllEventsCheck}
+                      onChange={this.handleAllEventsCheck('allEventsChecked')}
+                      value="allEventsChecked"
+                      color="primary"
+                    />
+                  }
+
+                  label="Listen to all incoming events"
+                />
+
                 <AddEvent connected={this.state.connectionStatus === 'connected'} onSubmit={this.onEventSubmit}></AddEvent>
                 {Object.keys(this.state.registeredEvents).length > 0 && (
 

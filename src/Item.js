@@ -34,6 +34,17 @@ const getContent = (message) => {
                 </Typography>
             </div>
         )
+    }else if(typeof message === 'number'){
+        return (
+            <div>
+                <Typography color="textSecondary" gutterBottom>
+                    Type: Number
+         </Typography>
+                <Typography variant="h5" color="textPrimary" gutterBottom>
+                    {message}
+                </Typography>
+            </div>
+        )
     }
 
 

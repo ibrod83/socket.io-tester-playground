@@ -44,15 +44,15 @@ class SendMessage extends React.Component {
         this.setState({ event })
     }
 
-    onMessageChange = (message) => {        
+    onMessageChange = (message) => {
         let error = false;
         if (this.state.tab === 'Object') {
             const parsedMessage = this.isObject(message);
-            if(!parsedMessage){
-                error= true;
+            if (!parsedMessage) {
+                error = true;
             }
         }
-        this.setState({ message,error });
+        this.setState({ message, error });
     }
 
     isObject = (value) => {//Returns the parsed object on success, false on failure.
@@ -71,30 +71,30 @@ class SendMessage extends React.Component {
     }
 
     onSubmit = (e) => {
-        debugger;
+        // debugger;
         e.preventDefault();
         let value = this.state.message;
         // this.validateInput(value)
         switch (this.state.tab) {
             case 'Number':
-                 value = parseInt(value)
+                value = parseInt(value)
                 break;
             case 'Object':
                 // debugger;
                 let evalResult;
-                eval(`evalResult = ${value}`);                 
+                eval(`evalResult = ${value}`);
                 value = evalResult;
             default:
                 break;
         }
-        
+
 
         // alert(this.state.address)
         this.props.onSubmit(this.state.event, value);
     }
 
     handleTabChange = (e) => {
-        this.setState({ tab: e.target.value })
+        this.setState({ tab: e.target.value,message:"",error:false })
     }
 
 
