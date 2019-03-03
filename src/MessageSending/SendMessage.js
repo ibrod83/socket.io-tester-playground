@@ -14,10 +14,10 @@ import ObjectMessage from './ObjectMessage';
 
 
 const styles = theme => ({
-    root: {
-        display: 'flex',
-        flexWrap: 'wrap',
-    },
+    // root: {
+    //     display: 'flex',
+    //     flexWrap: 'wrap',
+    // },
     formControl: {
         margin: theme.spacing.unit,
         minWidth: 120,
@@ -134,7 +134,7 @@ class SendMessage extends React.Component {
                         <MenuItem value={'Object'}>Object</MenuItem>
 
                     </Select>
-                    <FormHelperText>Select the message formatting</FormHelperText>
+                    <FormHelperText>Select message type</FormHelperText>
                 </FormControl>
                 {this.state.tab === 'String' && <StringMessage onChange={this.onMessageChange} value={this.state.message} />}
 

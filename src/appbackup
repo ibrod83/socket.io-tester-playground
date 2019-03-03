@@ -18,7 +18,7 @@ import Header from './Header';
 import AddEvent from './AddEvent'
 import SendMessage from './MessageSending/SendMessage'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-import {blue,green,grey} from '@material-ui/core/colors';
+import blue from '@material-ui/core/colors/blue';
 import io from 'socket.io-client';
 import state from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
@@ -26,8 +26,6 @@ import { handleAlertCloseAction, createAlertAction } from './global'
 const theme = createMuiTheme({
   palette: {
     primary: blue,
-    success:green[600],
-    pending:grey
   },
 });
 
@@ -55,7 +53,7 @@ export default observer(
       allEventsChecked: false,
     }
 
-
+   
 
     connect = (address) => {
       console.log('connecting');
@@ -139,7 +137,7 @@ export default observer(
         socket.on(eventName, (data) => {
           const id = uuid();
           console.log('on:', eventName)
-          this.addMessageToState(id, eventName, data, false)
+          this.addMessage(id, eventName, data, false)
         })
       }
 
@@ -154,7 +152,7 @@ export default observer(
       }))
 
     }
-
+     
 
     unregisterAnonymousEvents = () => {
       // debugger;
@@ -180,7 +178,39 @@ export default observer(
       })
     }
 
-    
+    componentDidUpdate(prevProps) {
+
+      this.scrollToBottom()
+    }
+
+
+    scrollToBottom = () => {
+
+      const messagesDiv = document.querySelector('#messages');//The scrolled container
+
+      const messagesList = document.querySelector('#messages_list');//The actual UL. The ID is set in the messages component.
+
+      if (messagesList.childNodes.length > 1) {//Check if there is more than one item first.
+
+        const scrollHeight = messagesDiv.scrollHeight;
+
+        const clientHeight = messagesDiv.clientHeight;
+
+        const scrollTop = messagesDiv.scrollTop;
+
+        const lastItemHeight = messagesList.childNodes[messagesList.childNodes.length - 1].offsetHeight
+
+        const oneBeforeLastItemHeight = messagesList.childNodes[messagesList.childNodes.length - 2].offsetHeight
+
+        if (clientHeight + scrollTop + lastItemHeight + oneBeforeLastItemHeight >= scrollHeight) {
+
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        }
+      }
+
+    }
+
 
     onConnectSubmit = (address) => {
       this.connect(address);
@@ -197,11 +227,11 @@ export default observer(
 
     onMessageSubmit = (eventName, message) => {
       const id = uuid();
-      this.addMessageToState(id, eventName, message, true);
-      this.sendMessageToServer(id, eventName, message);
+      this.addMessage(id, eventName, message, true);
+      this.sendMessage(id, eventName, message);
     }
 
-    addMessageToState = (id, eventName, data, owner) => {
+    addMessage = (id, eventName, data, owner) => {
 
       const time = this.getTime();
       this.setState((state, props) => ({
@@ -212,31 +242,28 @@ export default observer(
       // document.querySelector('#dummy').scrollIntoView({ behavior: 'smooth' })
     }
 
-    sendMessageToServer = (id, eventName, message) => {
+    sendMessage = (id, eventName, message) => {
       const callback = (data) => {
-        // debugger;
+        debugger;
         console.log('data from callback', data)
-        this.changeMessage(id,'status','success');
-      }
-      socket.emit(eventName, message, callback)
-    }
-
-    changeMessage = (messageId, prop, value) => {
-      this.setState((state) => {
-        const messages = state.messages.map((message) => {
-          if (message.id === messageId) {
-            return {
-              ...message,
-              [prop]: value
+        // const itemById = this.state.messages.filter(item=>item.id === id )
+        this.setState((state) => {
+          const messages = state.messages.map((message) => {
+            if (message.id === id) {
+              return {
+                ...message,
+                status: 'success'
+              }
+            } else {
+              return message;
             }
-          } else {
-            return message;
+          })
+          return {
+            messages
           }
         })
-        return {
-          messages
-        }
-      })
+      }
+      socket.emit(eventName, message, callback)
     }
 
     onChange = (e) => {
@@ -294,7 +321,7 @@ export default observer(
 
     }
 
-
+  
 
     handleAllEventsCheck = name => event => {
       this.setState({ [name]: event.target.checked });
@@ -368,7 +395,7 @@ export default observer(
                 </div>
               </div>
 
-              <div className="special_scroll"  id="messages">
+              <div className="special_scroll" ref={this.messages} id="messages">
 
                 <Typography variant="h6" gutterBottom>
                   Messages sent/received
