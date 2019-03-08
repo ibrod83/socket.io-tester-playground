@@ -13,29 +13,25 @@ import Messages from './Messages';
 import RegisteredEvents from './RegisteredEvents';
 import uuid from 'uuid';
 import './App.scss';
+// import Instance from './Instance';
 import moment from 'moment';
 import Header from './Header';
 import AddEvent from './AddEvent'
 import SendMessage from './MessageSending/SendMessage'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-import {blue,green,grey} from '@material-ui/core/colors';
+import { blue, green, grey } from '@material-ui/core/colors';
 import io from 'socket.io-client';
-import state from './global';
+import store from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
 
 const theme = createMuiTheme({
   palette: {
     primary: blue,
-    success:green[600],
-    pending:grey
+    success: green[600],
+    pending: grey
   },
 });
 
-// import MenuIcon from '@material-ui/icons/Menu';
-
-// import {observer} from 'mobx-react';
-// import state from './state';
-let socket;
 
 
 export default observer(
@@ -43,16 +39,47 @@ export default observer(
 
     constructor(props) {
       super(props);
-      this.messages = React.createRef();
+      // this.messages = React.createRef();
+      const instance = this.generateInstance();
+      this.state = {
+        instances: [instance],
+        activeInstance: instance.id
+      }
+      // this.setState({ instances: [instance], activeInstance: instance.id })
     }
 
-    state = {
-      address: "",
-      eventName: "",
-      messages: [],
-      registeredEvents: {},
-      anonymousEvents: {},
-      allEventsChecked: false,
+
+    getActiveInstance = () => {
+      // debugger;
+      console.log(this.state)
+      return this.state.instances.filter(instance => instance.id === this.state.activeInstance)[0]
+    }
+
+    addInstance = () => {
+      const instance = this.generateInstance();
+      this.setState((state) => {
+        return {
+          instances: [...state.instances, instance],
+          activeInstance: instance.id
+        }
+      })
+    }
+
+
+    generateInstance = () => {
+      const instance = {
+        address: "",
+        id: uuid(),
+        socket: null,
+        // eventName: "",
+        messages: [],
+        registeredEvents: {},
+        anonymousEvents: {},
+        allEventsChecked: false,
+        connectionStatus: "disconnected"
+      }
+
+      return instance;
     }
 
 
@@ -60,21 +87,39 @@ export default observer(
     connect = (address) => {
       console.log('connecting');
 
-      state.connectionStatus = 'connecting';
+      // const currentState = 
 
-      if (socket) {
-        socket.disconnect();
+      const instanceId = this.state.activeInstance;
+
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      this.setState((state) => {
+
+        instance.connectionStatus = 'connecting';
+        return {
+          instances
+        }
+
+      })
+
+
+      if (instance.socket) {
+        instance.socket.disconnect();
       }
 
-      socket = window.socket = io(address);
+      const socket = instance.socket = io(address);
 
-      this.originalOnevent = socket.onevent;//Create a reference to the original onevent function of SocketIO, to be used by the "listen to all events" mechanism.
-
+      instance.originalOnevent = socket.onevent;//Create a reference to the original onevent function of SocketIO, to be used by the "listen to all events" mechanism.
 
       socket.on('connect', () => {
+
+        const {instances,instance} = this.getInstantSlice(instanceId);
+
         console.log('connected!')
 
-        state.connectionStatus = 'connected';
+        instance.connectionStatus = 'connected';
+
+        this.setState(()=>({instances}));
 
       });
 
@@ -89,7 +134,7 @@ export default observer(
 
 
       socket.on('connect_error', (error) => {
-        console.log('Error connecting!', state)
+        // console.log('Error connecting!', state)
 
         createAlertAction('error', 'Error connecting to the server');
 
@@ -97,10 +142,15 @@ export default observer(
 
 
       socket.on('reconnect', (attemptNumber) => {
+
+        const {instances,instance} = this.getInstantSlice(instanceId); 
+
+        instance.connectionStatus = "connected";
         console.log('reconnected');
 
-        state.alertOpen = false;
-        state.connectionStatus = 'connected';
+        store.alertOpen = false;
+
+        this.setState(()=>({instances}));        
 
       });
 
@@ -108,65 +158,117 @@ export default observer(
       socket.on('reconnecting', (attemptNumber) => {
         console.log('reconnecting');
 
-        state.connectionStatus = "reconnecting";
+        const {instances,instance} = this.getInstantSlice(instanceId);
+
+        instance.connectionStatus = "reconnecting";
+
+        this.setState(()=>({instances}));
+
       });
 
 
-      if (Object.keys(this.state.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
+      //***take care of anonymous events in a similar manner */
+      if (Object.keys(instance.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
         console.log('re-registering events');
-        for (let event of Object.keys(this.state.registeredEvents)) {
-          this.registerEvent(event);
+        for (let event of Object.keys(instance.registeredEvents)) {
+          this.registerEvent(instance.id, event);
         }
       }
 
     }
 
 
-    registerEvent = (eventName) => {
-      // console.log('registering event:', eventName)
-      this.registerEventCallback(eventName);
+    registerEvent = (instanceId, eventName) => {
 
-      this.setState((state) => ({
-        registeredEvents: { ...state.registeredEvents, [eventName]: { name: eventName } }
-      }))
+      const {instances,instance} = this.getInstantSlice(instanceId);
 
+      const socket = instance.socket;//The socket associated with this instance.
+
+      if (socket) {
+
+        socket.off(eventName);//Remove any existing listener for that event on this socket, to prevent duplication.
+
+        socket.on(eventName, (data) => {//Register the event with the given socket.
+
+          this.addMessageToState(instanceId, eventName, data, false)
+
+        })
+      }
+
+      instance.registeredEvents[eventName] = { name: eventName };//"instance" is not to be confused with the one from the callback scope.
+
+      this.setState(()=>({instances}));
 
     }
 
-    registerEventCallback = (eventName) => {
+
+    addMessageToState = (instanceId, eventName, data, owner) => {
+
+      const messageId = uuid();
+
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      const time = this.getTime();
+
+      instance.messages.push({ id: messageId, eventName, time, data, owner, status: 'pending' })//Adding a message to the instance.
+
+      this.setState(()=>({instances}));
+
+    }
+
+
+    getInstantSlice = (id) => {
+      const instances = [...this.state.instances];
+
+      let instance;
+      instances.forEach((ins, index) => {
+        if (ins.id === id) {
+          instance = instances[index];
+        }
+      })
+      return {instance,instances};
+    }
+
+
+
+    registerAnonymousEvent = (instanceId, eventName) => {//This registers a callback for an event coming from SocketIO's Socket.prototype.onevent function.
+      console.log('registering anonymous event:', eventName)
+   
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      instance.anonymousEvents[eventName] = {name:eventName};
+
+      const socket = instance.socket;
+
       if (socket) {
         socket.off(eventName);
         socket.on(eventName, (data) => {
           const id = uuid();
           console.log('on:', eventName)
-          this.addMessageToState(id, eventName, data, false)
+          this.addMessageToState(instanceId, eventName, data, false)
         })
       }
 
-    }
-
-    registerAnonymousEvent = (eventName) => {//This registers a callback for an event coming from SocketIO's Socket.prototype.onevent function.
-      console.log('registering anonymous event:', eventName)
-      this.registerEventCallback(eventName);
-      // debugger;
-      this.setState((state) => ({
-        anonymousEvents: { ...state.anonymousEvents, [eventName]: { name: eventName } }
-      }))
+      this.setState(()=>({instances}));
 
     }
 
 
-    unregisterAnonymousEvents = () => {
+    unregisterAnonymousEvents = (instanceId) => {
       // debugger;
-      for (let event in this.state.anonymousEvents) {
-        if (!this.state.registeredEvents.hasOwnProperty(event)) {
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      const socket = instance.socket;
+
+      for (let event in instance.anonymousEvents) {
+        if (!instance.registeredEvents.hasOwnProperty(event)) {
           socket.off(event)
         }
 
       }
-      this.setState((state) => ({
-        anonymousEvents: {}
-      }))
+      instance.anonymousEvents = {}
+
+      this.setState(()=>({instances}));
     }
 
 
@@ -180,7 +282,7 @@ export default observer(
       })
     }
 
-    
+
 
     onConnectSubmit = (address) => {
       this.connect(address);
@@ -188,42 +290,57 @@ export default observer(
 
 
     onDisconnectSubmit = () => {
+
+      const instanceId = this.state.activeInstance;
+      
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      const socket = instance.socket;
+
       console.log('disconnected manually')
+
       socket.disconnect();
-      // this.setState({ connectionStatus: 'disconnected' })
-      state.connectionStatus = 'disconnected';
+
+      instance.connectionStatus = 'disconnected';
+      
+      this.setState(()=>({instances}));
 
     }
 
-    onMessageSubmit = (eventName, message) => {
-      const id = uuid();
-      this.addMessageToState(id, eventName, message, true);
-      this.sendMessageToServer(id, eventName, message);
-    }
 
-    addMessageToState = (id, eventName, data, owner) => {
+    onMessageSubmit = (eventName, data) => {
+      const instanceId = this.state.activeInstance;
 
-      const time = this.getTime();
-      this.setState((state, props) => ({
-        ...state,
-        messages: [...state.messages, { id, eventName, time, data, owner, status: 'pending' }]
-      }))
+      const {instance} = this.getInstantSlice(instanceId);
 
-      // document.querySelector('#dummy').scrollIntoView({ behavior: 'smooth' })
-    }
+      const socket = instance.socket;
 
-    sendMessageToServer = (id, eventName, message) => {
+      const messageId = this.addMessageToState(instanceId, eventName, data, true);
+
       const callback = (data) => {
         // debugger;
         console.log('data from callback', data)
-        this.changeMessage(id,'status','success');
+        this.changeMessage(instanceId, messageId, 'status', 'success');
       }
+
+      this.sendMessageToServer(socket, eventName, data, callback);
+    }
+
+
+    sendMessageToServer = (socket, eventName, message, callback) => {
+
       socket.emit(eventName, message, callback)
     }
 
-    changeMessage = (messageId, prop, value) => {
-      this.setState((state) => {
-        const messages = state.messages.map((message) => {
+
+
+
+    changeMessage = (instanceId, messageId, prop, value) => {
+
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      this.setState(() => {
+        const messages = instance.messages.map((message) => {
           if (message.id === messageId) {
             return {
               ...message,
@@ -233,42 +350,53 @@ export default observer(
             return message;
           }
         })
+        instance.messages = messages;
         return {
-          messages
+          instances
         }
       })
     }
 
-    onChange = (e) => {
-      const name = e.target.name;
-      const value = e.target.value;
-      this.setState({
-        [name]: value
-      })
+
+    onEventSubmit = (instance, eventName) => {
+      console.log(instance, eventName)
+      this.registerEvent(instance, eventName);
     }
 
 
-    onEventSubmit = (eventName) => {
-      console.log(eventName)
-      this.registerEvent(eventName);
-    }
 
     onEventDelete = (name) => {
+
+      const instanceId = this.state.activeInstance;
+
+      const {instances,instance} = this.getInstantSlice(instanceId);
+
+      const socket = instance.socket;
       // this.setState()
       // debugger;
       socket.off(name);
 
-      const oldEvents = { ...this.state.registeredEvents };
+      const oldEvents = instance.registeredEvents
+
       delete oldEvents[name];
+
       this.setState({
-        registeredEvents: oldEvents
+        instances
       })
     }
 
 
+    getSocketByInstanceId = (instanceId) => {
+      const instance = this.state.instances.filter(instance => instance.id === instanceId)[0];
+      return instance.socket;
+    }
 
 
-    listenToAllEvents = (on) => {
+    listenToAllEvents = (instanceId, on) => {
+
+      const {instance} = this.getInstantSlice(instanceId);
+  
+      const socket = instance.socket;
 
       const that = this;
 
@@ -279,16 +407,17 @@ export default observer(
 
           const eventData = packet.data[1];//Extracts the data.
 
-          that.registerAnonymousEvent(eventName, eventData)//Registers the event
+          that.registerAnonymousEvent(instanceId, eventName, eventData)//Registers the event
 
-          that.originalOnevent.call(this, packet);//Calls the original onevent function, for normal application flow.
+          instance.originalOnevent.call(this, packet);//Calls the original onevent function, for normal application flow.
 
         };
 
       } else {
-        socket.onevent = that.originalOnevent;
+        // debugger;
+        socket.onevent = instance.originalOnevent;
 
-        that.unregisterAnonymousEvents()
+        that.unregisterAnonymousEvents(instanceId)
 
       }
 
@@ -297,9 +426,18 @@ export default observer(
 
 
     handleAllEventsCheck = name => event => {
-      this.setState({ [name]: event.target.checked });
-      this.listenToAllEvents(event.target.checked)
+
+      const {instances,instance} = this.getInstantSlice(this.state.activeInstance);
+
+      const checked = event.target.checked;
+
+      instance.allEventsChecked = checked;
+
+      this.setState(()=>({instances}));
+
+      this.listenToAllEvents(instance.id, checked);
     };
+    
 
     getTime = () => {
 
@@ -324,19 +462,25 @@ export default observer(
 
     render() {
 
+      const state = this.getActiveInstance();
+      const { connectionStatus, allEventsChecked, registeredEvents, messages, anonymousEvents } = state;
+      const activeInstanceId = state.id;
+      // debugger;
+
       return (
 
         <MuiThemeProvider theme={theme}>
           <div id="wrapper">
             <Header connectionStatus={state.connectionStatus} onDisconnectSubmit={this.onDisconnectSubmit} onConnectSubmit={this.onConnectSubmit}></Header>
 
-            <div id="main">
 
+
+            <div id="main">
               <div className="special_scroll" id="panel">
 
                 <div id="send_messages">
                   <Typography gutterBottom variant="h6">Send messages</Typography>
-                  <SendMessage connected={state.connectionStatus === 'connected'} onSubmit={this.onMessageSubmit}></SendMessage>
+                  <SendMessage connected={connectionStatus === 'connected'} onSubmit={this.onMessageSubmit}></SendMessage>
 
                 </div>
 
@@ -346,8 +490,8 @@ export default observer(
                   <FormControlLabel
                     control={
                       <Checkbox
-                        disabled={state.connectionStatus !== 'connected'}
-                        checked={this.state.handleAllEventsCheck}
+                        disabled={connectionStatus !== 'connected'}
+                        checked={allEventsChecked}
                         onChange={this.handleAllEventsCheck('allEventsChecked')}
                         value="allEventsChecked"
                         color="primary"
@@ -357,22 +501,22 @@ export default observer(
                     label="Listen to all incoming events"
                   />
 
-                  <AddEvent connected={state.connectionStatus === 'connected'} onSubmit={this.onEventSubmit}></AddEvent>
-                  {Object.keys(this.state.registeredEvents).length > 0 && (
+                  <AddEvent connected={connectionStatus === 'connected'} onSubmit={(eventName) => { this.onEventSubmit(activeInstanceId, eventName) }}></AddEvent>
+                  {Object.keys(registeredEvents).length > 0 && (
 
                     <div id="registered_events" >
-                      <RegisteredEvents onEventDelete={this.onEventDelete} events={Object.values(this.state.registeredEvents)}></RegisteredEvents>
+                      <RegisteredEvents onEventDelete={this.onEventDelete} events={Object.values(registeredEvents)}></RegisteredEvents>
                     </div>
 
                   )}
                 </div>
               </div>
 
-              <div className="special_scroll"  id="messages">
+              <div className="special_scroll" id="messages">
 
                 <Typography variant="h6" gutterBottom>
                   Messages sent/received
-                {this.state.messages.length > 0 && (
+       {messages.length > 0 && (
                     <div style={{ float: 'right' }}>
 
                       <Tooltip title="Delete all messages">
@@ -385,15 +529,19 @@ export default observer(
 
                 </Typography>
 
-                <Messages messages={this.state.messages} />
+                <Messages messages={messages} />
                 <div style={{ float: "left", clear: "both" }} id="dummy">
 
                 </div>
 
               </div>
             </div>
+
+
+
+
           </div>
-          <Alert nature={state.alertNature} handleAlertClose={this.handleAlertClose} open={state.alertOpen} content={state.alertContent} />
+          <Alert nature={store.alertNature} handleAlertClose={this.handleAlertClose} open={store.alertOpen} content={store.alertContent} />
 
         </MuiThemeProvider>
 
@@ -405,26 +553,3 @@ export default observer(
 
 
 
-
-
-
-
-
- // componentDidMount() {
-
-    //   // if (process.env.NODE_ENV === 'development') {
-    //   //   this.addDummyDataForDevelopment();
-    //   // }
-
-    // }
-
-    // addDummyDataForDevelopment = () => {
-
-    //   this.addMessage('yoyo', "Lorem Ipsum is simply dummy text of the printing and typesetting industry.", true);
-    //   // this.registerEvent('welcome')
-    //   // this.registerEvent('welcome2')
-    //   this.addMessage('welcome', 'heyyyy', false);
-
-    //   // this.registerEvent('welcome')
-
-    // }

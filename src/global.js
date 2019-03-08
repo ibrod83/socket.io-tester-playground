@@ -5,9 +5,7 @@ import {observable} from 'mobx';
 const schema = {
     alertOpen: false,
     alertNature:'error',
-    alertContent: '',
-    connectionStatus:"disconnected"  
-        
+    alertContent: '',        
 }
 
 const state = observable(schema);
