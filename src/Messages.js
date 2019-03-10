@@ -18,6 +18,9 @@ export default class extends React.Component {
         console.log('prev props', prevProps)
         console.log('current props', this.props)
 
+        if(this.props.instanceId !== prevProps.instanceId)
+            return this.scrollToBottom();
+
         if (this.props.messages.length > 0 && prevProps.messages.length !== this.props.messages.length) {
             if (this.shouldScrollDown(this.props.messages[this.props.messages.length - 1])) {
                 this.scrollToBottom();

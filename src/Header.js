@@ -140,7 +140,16 @@ class Header extends React.Component {
     }
 
     render() {
-        const { classes } = this.props;
+        const { classes,connectionStatus } = this.props;
+        let address;
+        let disabled;
+        if(connectionStatus === 'connected' || connectionStatus === 'connecting' || connectionStatus === 'reconnecting'){
+            address= this.props.address;
+            disabled = true;
+        }else{
+            address= this.state.address;
+            disabled= false;
+        }
         return (
             <form autoComplete="off" onSubmit={this.onSubmit} className={classes.root}>
                 <AppBar position="static">
@@ -152,10 +161,11 @@ class Header extends React.Component {
 
                             </div>
                             <InputBase
+                                disabled={disabled}    
                                 name="address"
-                                value={this.state.address}
+                                value={address}
                                 onChange={this.onChange}
-                                placeholder="localhost:3001"
+                                // placeholder="localhost:3001"
                                 classes={{
                                     root: classes.inputRoot,
                                     input: classes.inputInput,
