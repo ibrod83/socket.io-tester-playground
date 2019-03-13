@@ -31,7 +31,7 @@ import { blue, green, grey } from '@material-ui/core/colors';
 import io from 'socket.io-client';
 import store from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
-import { Button } from '@material-ui/core';
+// import { Button } from '@material-ui/core';
 
 const theme = createMuiTheme({
   palette: {
@@ -50,13 +50,10 @@ const StyledTab = withStyles({
 
 const StyledClearIcon = withStyles({
   root: {
-    // position:'absolute'
-    // marginLeft: '90%',
-    // marginBottom: '-20px',
     fontSize: '20px',
-    position:'absolute',
-    top:'20px',
-    right:'0px'
+    position: 'absolute',
+    top: '20px',
+    right: '0px'
   },
 
 })(ClearIcon);
@@ -72,8 +69,8 @@ export default observer(
       const instance0 = this.generateInstance();
       // const instance1 = this.generateInstance();
       this.state = {
-        instances: [instance0],
-        activeInstance: instance0.id
+        instances: [instance0],//Each instance has its own socket messages and events. Represented by a tab.
+        activeInstance: instance0.id//The instance represented by the active tab.
       }
     }
 
@@ -83,6 +80,8 @@ export default observer(
       console.log(this.state)
       return this.state.instances.filter(instance => instance.id === this.state.activeInstance)[0]
     }
+
+
 
     addInstance = () => {
       const instance = this.generateInstance();
@@ -94,13 +93,30 @@ export default observer(
       })
     }
 
+    doesInstanceExist(instanceId) {//Used by async operations.
+      const instance = this.state.instances.filter(instance => instance.id === instanceId);
+      if (instance.length > 0) {
+        return true
+      }
+      return false;
+    }
 
-    generateInstance = () => {
+
+    generateInstance = () => {//Initial structure of an instance.
+      // var fakeMessages=[];
+      // for(let i=0;i<100;i++){
+      //   fakeMessages.push({
+      //     data:'yoyoyo',
+      //     eventName:'welcome',
+      //     id:uuid()
+      //   })
+      // }
       const instance = {
         address: "",
         id: uuid(),
         socket: null,
         messages: [],
+        // messages: fakeMessages,
         registeredEvents: {},
         anonymousEvents: {},
         allEventsChecked: false,
@@ -112,9 +128,10 @@ export default observer(
 
 
 
-    connect = (address) => {
+    connect = (address, config) => {//Fired after a certain instance(tab) wants to create the initial connection
       console.log('connecting');
-
+      console.log(JSON.parse(JSON.stringify(config)));
+      
       // const currentState = 
 
       const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
@@ -129,7 +146,10 @@ export default observer(
         instance.socket.disconnect();
       }
 
-      const socket = instance.socket = io(address);
+      
+
+      var socket = instance.socket = config ? io(address, config) : io(address);
+
 
       instance.originalOnevent = socket.onevent;//Create a reference to the original onevent function of SocketIO, to be used by the "listen to all events" mechanism.
 
@@ -150,7 +170,13 @@ export default observer(
       socket.on('disconnect', (reason) => {
         console.log('reason', reason)
         if (reason === 'io server disconnect') {
-          socket.disconnect();
+          createAlertAction('error', 'Disconnected from the server');
+
+          const instanceId = this.getInstanceBySocketId(socket.id).id;
+          
+
+          this.disconnectManually(instanceId);
+
         }
         // else the socket will automatically try to reconnect
       });
@@ -243,7 +269,7 @@ export default observer(
       const time = this.getTime();
       //*****UNDESRSTAND WHY THIS WASNT WORKING!!! */
       // instance.messages.push({ id: messageId, eventName, time, data, owner, status: 'pending' })//Adding a message to the instance.
-      instance.messages =  [...instance.messages, { id: messageId, eventName, time, data, owner, status: 'pending'} ]
+      instance.messages = [...instance.messages, { id: messageId, eventName, time, data, owner, status: 'pending' }]
 
       this.setState(() => ({ instances }));
 
@@ -266,21 +292,11 @@ export default observer(
       return { instance, instances };//Return an object containing both.
     }
 
-    getInstanceReference = (id)=>{
-      
-
-      let instance;
-      this.state.instances.forEach((ins, index) => {
-        if (ins.id === id) {
-          instance = this.state.instances[index];//The actual instance
-        }
-      })
-      return { instance, instances:this.state.instances };//Return an object containing both.
-    }
-    
 
 
-    listenToAllEvents = (instanceId, on) => {
+
+    listenToAllEvents = (instanceId, on) => {//Will make an instance listen to every incoming socketIO message, prompting addition of the message to the
+      //instance.messages array.
 
       const { instance } = this.getInstanceSlice(instanceId);
 
@@ -355,7 +371,7 @@ export default observer(
 
 
 
-    onMessagesDelete = () => {
+    onMessagesDelete = () => {//Fired when the user deletes all messages of an instance
 
       const instanceId = this.state.activeInstance;
 
@@ -369,14 +385,22 @@ export default observer(
 
 
 
-    onConnectSubmit = (address) => {
-      this.connect(address);
+    onConnectSubmit = (address, query) => {
+      this.connect(address, query);
     }
+
 
 
     onDisconnectSubmit = () => {
 
       const instanceId = this.state.activeInstance;
+
+      this.disconnectManually(instanceId);
+    }
+
+
+
+    disconnectManually = (instanceId) => {
 
       const { instances, instance } = this.getInstanceSlice(instanceId);
 
@@ -389,7 +413,6 @@ export default observer(
       instance.connectionStatus = 'disconnected';
 
       this.setState(() => ({ instances }));
-
     }
 
 
@@ -402,25 +425,78 @@ export default observer(
 
       const messageId = this.addMessageToState(instanceId, eventName, data, true);
 
+      this.createMessageHandler(instanceId, socket, messageId, eventName, data);
+    }
+
+
+
+
+    onMessageFail = (instanceId, messageId) => {//Fired when a message failed to receive a callback after a certain period of time.
+      this.changeMessage(instanceId, messageId, 'status', 'fail')
+    }
+
+
+
+
+    createMessageHandler = (instanceId, socket, messageId, eventName, data) => {//Creates the logic to handle the message success/failure.
+
+      var timeoutId = setTimeout(() => {//Timeout function that waits for the message callback.
+
+        if (this.doesInstanceExist(instanceId)) {//This condition is to make sure, the instance still exists when the callback is fired.
+          this.onMessageFail(instanceId, messageId);
+        }
+
+      }, 2000);
+
       const callback = (data) => {
+        clearTimeout(timeoutId);//Clear the timeout, so that an error is not fired.
         // debugger;
         console.log('data from callback', data)
+        // debugger;
+
+
         this.changeMessage(instanceId, messageId, 'status', 'success');
+
+
       }
 
       this.sendMessageToServer(socket, eventName, data, callback);
-    }
 
 
-    sendMessageToServer = (socket, eventName, message, callback) => {
-
-      socket.emit(eventName, message, callback)
     }
 
 
 
+    sendMessageToServer = (socket, eventName, data, callback) => {//Emits the event.
+      socket.emit(eventName, data, callback);
+    }
 
-    changeMessage = (instanceId, messageId, prop, value) => {
+
+
+
+    onMessageResend = (instanceId, messageId) => {//Fired when the user tries to resend a failed message.
+      // debugger;
+
+      this.changeMessage(instanceId, messageId, 'status', 'pending');
+
+      const { instance } = this.getInstanceSlice(instanceId);
+
+      const message = instance.messages.filter(message => message.id === messageId)[0];
+
+      const eventName = message.eventName;
+
+      const socket = instance.socket;
+
+      const data = message.data;
+
+      this.createMessageHandler(instanceId, socket, messageId, eventName, data)
+
+    }
+
+
+
+
+    changeMessage = (instanceId, messageId, prop, value) => {//Function that changes properties of a message(particularly "status").
 
       const { instances, instance } = this.getInstanceSlice(instanceId);
 
@@ -443,14 +519,14 @@ export default observer(
     }
 
 
-    onEventSubmit = (instance, eventName) => {
+    onEventSubmit = (instance, eventName) => {//Fired when a user adds an event listener manually.
       console.log(instance, eventName)
       this.registerEvent(instance, eventName);
     }
 
 
 
-    onEventDelete = (name) => {
+    onEventDelete = (name) => {//Fired when a user deletes an event listener manually.
 
       const instanceId = this.state.activeInstance;
 
@@ -475,9 +551,14 @@ export default observer(
       return instance.socket;
     }
 
+    getInstanceBySocketId = (socketId) => {
+      const instance = this.state.instances.filter(instance => instance.socket.id === socketId)[0];
+      return instance;
+    }
 
 
-    handleAllEventsCheck = name => event => {
+
+    handleAllEventsCheck = name => event => {//Fired when the user toggles the listen to all events checkbox on a particular instance.
 
       const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
 
@@ -491,11 +572,13 @@ export default observer(
     };
 
 
+
     getTime = () => {
 
       const unix = this.getMoment();
       return moment(unix * 1000).format('HH:mm');
     }
+
 
 
     getMoment = () => {
@@ -510,13 +593,15 @@ export default observer(
       handleAlertCloseAction(event, reason);
     };
 
-    changeActiveInstance = (id) => {
+
+    changeActiveInstance = (id) => {//Fired when user changes the tab.
       this.setState(() => ({ activeInstance: id }))
 
     }
 
+
     createNewTab = () => {
-      const instance = this.generateInstance();
+      const instance = this.generateInstance();//When user creates a new tab, an instance is created(with socket as null).
       this.setState((state) => ({
         instances: [...state.instances, instance]
       }))
@@ -527,7 +612,7 @@ export default observer(
 
 
 
-    destroyInstance = (e, id) => {      
+    destroyInstance = (e, id) => {//Fired when a user destroys a tab.
 
       e.stopPropagation();
       // debugger;
@@ -536,11 +621,11 @@ export default observer(
       const { instances, instance } = this.getInstanceSlice(id);
       console.log(instance.socket);
 
-      if(instance.socket){
+      if (instance.socket) {//Disconnect the socket if exists.
         instance.socket.disconnect();
       }
 
-      
+
 
       const tabIndex = instances.indexOf(instance);
 
@@ -548,13 +633,13 @@ export default observer(
 
       let newIndex;
 
-      if (tabLength - tabIndex === 1) {
+      if (tabLength - tabIndex === 1) {//Decide which tab will be active after update.
         newIndex = tabIndex - 1
-      }else{
+      } else {
         newIndex = tabIndex
       }
 
-      const newInstances = instances.filter(instance => instance.id !== id);
+      const newInstances = instances.filter(instance => instance.id !== id);//New instances array, without the deleted one.
 
       const lastInstance = newInstances[newIndex];
 
@@ -563,15 +648,15 @@ export default observer(
         instances: newInstances,
 
       });
-     
+
     }
 
 
 
-    getTabAddress = (instance) => {
+    getTabAddress = (instance) => {//Get the address of the current tab. Needed for communication with the Header component, which also has its own independent "address" state.
       const address = instance.address;
       const connectionStatus = instance.connectionStatus;
-      
+
       // debugger;
       if (connectionStatus === 'connected') {
 
@@ -594,18 +679,18 @@ export default observer(
 
     render() {
 
-      const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)
+      const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)//Get the currently active instance.
 
-      const { connectionStatus, allEventsChecked, registeredEvents, messages, address } = instance;
-      
-      console.log('length from app render',messages.length)
+      const { connectionStatus, allEventsChecked, registeredEvents, messages, address } = instance;//Extract the props.
+
+      console.log('length from app render', messages.length)
       const activeInstanceId = instance.id;
 
       const tabIndex = instances.indexOf(instance);
 
-      const firstInstance =  instances[0]
+      const firstInstance = instances[0]
 
-      console.log('tab index',tabIndex)
+      console.log('tab index', tabIndex)
 
       return (
 
@@ -614,13 +699,13 @@ export default observer(
             <AppBar color="default" position="static">
               <Tabs indicatorColor="primary" textColor="primary" value={tabIndex} onChange={this.handleChange}>
                 {instances.map(instance =>
-                    
+
                   <StyledTab
 
                     // style={{ textTransform: 'initial' }}
                     onClick={() => { this.changeActiveInstance(instance.id) }}
                     label={this.getTabAddress(instance)}
-                    icon={instance.id !== firstInstance.id ? <StyledClearIcon onClick={(e) => { this.destroyInstance(e, instance.id) }}></StyledClearIcon> :null}
+                    icon={instance.id !== firstInstance.id ? <StyledClearIcon onClick={(e) => { this.destroyInstance(e, instance.id) }}></StyledClearIcon> : null}
                   >
 
                   </StyledTab>
@@ -699,7 +784,7 @@ export default observer(
 
                 </Typography>
 
-                <Messages instanceId={activeInstanceId} messages={messages} />
+                <Messages onMessageResend={(messageId) => { this.onMessageResend(activeInstanceId, messageId) }} instanceId={activeInstanceId} messages={messages} />
                 <div style={{ float: "left", clear: "both" }} id="dummy">
 
                 </div>

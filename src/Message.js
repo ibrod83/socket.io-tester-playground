@@ -6,24 +6,26 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import CopyIcon from '@material-ui/icons/FileCopy';
 import DoneIcon from '@material-ui/icons/Done';
+import RefreshIcon from '@material-ui/icons/Refresh';
 
 import { ObjectInspector } from 'react-inspector'
 import { chromeLight } from 'react-inspector'
 import { createAlertAction } from './global';
 import Tooltip from '@material-ui/core/Tooltip';
-import { withStyles } from '@material-ui/core/styles';
+// import { withStyles } from '@material-ui/core/styles';
+// import { Button } from '@material-ui/core';
 
-const styles = theme => ({
-    success: {
-        color: theme.palette.success,
-    },
-    pending:{
-        color:theme.palette.pending
-    }
-});
+// const styles = theme => ({
+//     success: {
+//         color: theme.palette.success,
+//     },
+//     pending: {
+//         color: theme.palette.pending
+//     }
+// });
 
 
-class Message extends React.PureComponent {
+class Message extends React.Component {
 
     getType = (message) => {
         // debugger;
@@ -78,13 +80,44 @@ class Message extends React.PureComponent {
 
     }
 
+    getStatusColor = (status) => {
+        switch (status) {
+            case 'pending':
+                return 'grey'
+
+            case 'success':
+                return 'green'
+            case 'fail':
+                return 'red'
+            default:
+                break;
+        }
+    }
+
+    onMessageResend = (id) => {
+        this.props.onMessageResend(id);
+    }
+
+    shouldComponentUpdate(nextProps) {//To prevent unnecessary rendering, due to the new props.onMessageResend object.
+
+        if (this.props.message !== nextProps.message) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+
+
     // handleHover = () => {
     //     this.setState({ CopyButtonShown: !this.state.CopyButtonShown })
     // }
 
 
     render() {
-        const owner = this.props.owner;
+        const { owner, data, id, time, status, eventName } = this.props.message;
         console.log('item rendering!', this.props)
         return (
 
@@ -93,26 +126,41 @@ class Message extends React.PureComponent {
             <Card >
                 <CardContent style={{ padding: '15px' }}>
                     <Typography style={{ float: 'right' }} color="textSecondary" gutterBottom>
-                        {this.props.time}
+                        {time}
                     </Typography>
-                    
+
                     <Typography color="primary" gutterBottom>
-                        {owner ? 'Sent' : 'Received'} event: {this.props.eventName}
+                        {owner ? 'Sent' : 'Received'} event: {eventName}
                     </Typography>
-                   
+
                     <Typography color="textSecondary" gutterBottom>
-                        Type: {this.getType(this.props.data)}
+                        Type: {this.getType(data)}
                     </Typography>
-                    <ObjectInspector theme={{ ...chromeLight, ...({ TREENODE_FONT_SIZE: '18px', TREENODE_FONT_FAMILY: 'roboto,helvetica,arial' }) }} data={this.props.data} />
+                    <ObjectInspector theme={{ ...chromeLight, ...({ TREENODE_FONT_SIZE: '18px', TREENODE_FONT_FAMILY: 'roboto,helvetica,arial' }) }} data={data} />
 
                     <div style={{ float: 'right', position: 'relative', left: '6px', bottom: '49px' }} >
                         <Tooltip title="Copy to clipboard">
-                            <IconButton onClick={() => { this.onDataCopy(this.props.data) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
+                            <IconButton onClick={() => { this.onDataCopy(data) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
                         </Tooltip>
                         {owner && (
 
-                          <div style={{textAlign:'center'}}>  <DoneIcon style={{color:this.props.status  === 'success' ?'green' : 'grey'}}></DoneIcon></div>
-    
+                            <div style={{ textAlign: 'center' }}>
+                                {status === 'fail' ? (
+                                    <Tooltip title="Resend message">
+                                        <IconButton style={{padding:'2px'}} onClick={() => { this.onMessageResend(id) }} aria-label="Resend message">
+                                            <RefreshIcon style={{ color: 'red' }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                ) : (
+                                        <DoneIcon style={{ color: this.getStatusColor(status) }}></DoneIcon>
+                                    )
+                                }
+
+                            </div>
+
+
+
+
                         )}
 
                     </div>
@@ -129,7 +177,8 @@ class Message extends React.PureComponent {
 
 }
 
-export default withStyles(styles)(Message);
+// export default withStyles(styles)(Message);
+export default Message;
 
 
 // export default Message;

@@ -2,11 +2,18 @@ import React from 'react';
 import { withStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
+import Tooltip from '@material-ui/core/Tooltip';
 import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
 import SearchIcon from '@material-ui/icons/Search';
+// import TextField from '@material-ui/core/TextField';
+import ObjectMessage from './MessageSending/ObjectMessage';
+import SettingsIcon from '@material-ui/icons/Settings';
 import CastConnectedIcon from '@material-ui/icons/CastConnected';
 import { fade } from '@material-ui/core/styles/colorManipulator';
 import Typography from '@material-ui/core/Typography';
+import Modal from '@material-ui/core/Modal';
+
 import Loader from './Loader'
 
 
@@ -60,13 +67,36 @@ const styles = theme => (
                 width: 200,
             },
         },
+        inputInputQuery: {
+
+
+            paddingTop: theme.spacing.unit,
+            paddingRight: theme.spacing.unit,
+            paddingBottom: theme.spacing.unit,
+            paddingLeft: theme.spacing.unit,
+            transition: theme.transitions.create('width'),
+            width: '100%',
+            [theme.breakpoints.up('md')]: {
+                width: 200,
+            },
+        },
+        paper: {
+            position: 'absolute',
+            width: theme.spacing.unit * 50,
+            backgroundColor: theme.palette.background.paper,
+            boxShadow: theme.shadows[5],
+            padding: theme.spacing.unit * 4,
+            outline: 'none',
+          }
     }
 );
 
 class Header extends React.Component {
 
     state = {
-        address: "localhost:3001"
+        address: "localhost:3001",
+        configOpen: false,
+        configValue: ""
     }
 
     onChange = (e) => {
@@ -79,6 +109,7 @@ class Header extends React.Component {
 
     onSubmit = (e) => {
         e.preventDefault();
+
         switch (this.props.connectionStatus) {
             case 'connected':
             case 'reconnecting':
@@ -94,10 +125,36 @@ class Header extends React.Component {
         }
     }
 
+    isObject = (value) => {//Returns the parsed object on success, false on failure.
+        // debugger;
+        let evalResult;
+        try {
+            eval(`evalResult = ${value}`) // if it doesn't throw it's a valid array or object
+            if (typeof evalResult === 'object') {
+                return evalResult;
+            } else {
+                return false;
+            }
+        } catch (e) {
+            return false;
+        }
+    }
+
     onConnectSubmit = (e) => {
+
+        let config;
+        if (this.state.configValue !== "") {
+            config = this.isObject(this.state.configValue);
+            // debugger;
+            console.log('options',config)
+            if (!config) {
+                return alert('Invalid json');
+            }
+        }
+
         // e.preventDefault();
         // alert(this.state.address)
-        this.props.onConnectSubmit(this.state.address);
+        this.props.onConnectSubmit(this.state.address, config);
     }
 
     onDisconnectSubmit = (e) => {
@@ -132,23 +189,50 @@ class Header extends React.Component {
             case 'disconnected':
                 return <SearchIcon></SearchIcon>;
             case 'connected':
-               return <CastConnectedIcon></CastConnectedIcon>;
+                return <CastConnectedIcon></CastConnectedIcon>;
             default:
                 return '';
 
         }
     }
 
+    toggleConfig = () => {
+        this.setState({ configOpen: !this.state.configOpen })
+    }
+
+    onOptionsChange = (configValue)=>{
+        console.log(configValue);
+        this.setState({configValue})
+    }
+
+    
+      
+    // getModalStyle=()=> {      
+
+    //     return {
+    //         top: `${top}%`,
+    //         left: `${left}%`,
+    //         transform: `translate(-${top}%, -${left}%)`,
+    //     };
+    // }
+
+    handleModalClose = ()=>{
+        this.setState((state)=>{
+          return  {configOpen:!state.configOpen}
+        })
+    }
+
     render() {
-        const { classes,connectionStatus } = this.props;
+       
+        const { classes, connectionStatus } = this.props;
         let address;
         let disabled;
-        if(connectionStatus === 'connected' || connectionStatus === 'connecting' || connectionStatus === 'reconnecting'){
-            address= this.props.address;
+        if (connectionStatus === 'connected' || connectionStatus === 'connecting' || connectionStatus === 'reconnecting') {
+            address = this.props.address;
             disabled = true;
-        }else{
-            address= this.state.address;
-            disabled= false;
+        } else {
+            address = this.state.address;
+            disabled = false;
         }
         return (
             <form autoComplete="off" onSubmit={this.onSubmit} className={classes.root}>
@@ -161,7 +245,7 @@ class Header extends React.Component {
 
                             </div>
                             <InputBase
-                                disabled={disabled}    
+                                disabled={disabled}
                                 name="address"
                                 value={address}
                                 onChange={this.onChange}
@@ -171,11 +255,56 @@ class Header extends React.Component {
                                     input: classes.inputInput,
                                 }}
                             />
+
                         </div>
+
+
+
+
+                        <Tooltip title="Add configuration">
+                                
+                            <IconButton
+                                key="close"
+                                aria-label="Close"
+                                color="inherit"
+                                // className={classes.close}
+                                onClick={this.handleModalClose}
+                            >
+                                <SettingsIcon />
+                            </IconButton>
+                        </Tooltip>
+
+
+
+
+
+
+                        <Modal
+                            // style={getModalStyle()}
+                            // className={classes.paper}
+                            aria-labelledby="simple-modal-title"
+                            aria-describedby="simple-modal-description"
+                            open={this.state.configOpen}
+                            onClose={this.handleModalClose}
+                        >
+                            <div style={{top:'50%',left:'50%',transform: `translate(-${50}%, -${50}%)`}} className={classes.paper}>
+                                <Typography variant="h5">Provide a configuration object to SocketIO. The string will be evaluated into a JS object</Typography>
+                               <ObjectMessage onChange={this.onOptionsChange}></ObjectMessage>
+                               <Button onClick={this.handleModalClose} color="primary">Confirm</Button>
+                            </div>
+                           
+                        </Modal>
+
+
+
+
+
                         {this.renderButton()}
 
                     </Toolbar>
+
                 </AppBar>
+
             </form>
         )
     }

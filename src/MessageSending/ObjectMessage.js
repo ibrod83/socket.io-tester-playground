@@ -25,7 +25,7 @@ const ObjectMessage = (props) => {
     return (
         <TextField
             // id="outlined-password-input"
-            label="Object message"
+            label={props.JSON ? "JSON message" : "Object message"}
             required
             error={props.error}
             multiline

@@ -15,8 +15,8 @@ export default class extends React.Component {
     componentDidUpdate(prevProps) {
         // debugger;
 
-        console.log('prev props', prevProps)
-        console.log('current props', this.props)
+        // console.log('prev props', prevProps)
+        // console.log('current props', this.props)
 
         if(this.props.instanceId !== prevProps.instanceId)
             return this.scrollToBottom();
@@ -82,7 +82,7 @@ export default class extends React.Component {
                         width: '40%'
 
                     }}>
-                    <Message  {...message} >
+                    <Message onMessageResend={this.props.onMessageResend} message={message} >
                     </Message>
                 </div>
                 </li>)}

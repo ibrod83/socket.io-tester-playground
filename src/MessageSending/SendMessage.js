@@ -52,6 +52,13 @@ class SendMessage extends React.Component {
                 error = true;
             }
         }
+
+        if (this.state.tab === 'JSON') {
+            const parsedMessage = this.isJson(message);
+            if (!parsedMessage) {
+                error = true;
+            }
+        }
         this.setState({ message, error });
     }
 
@@ -68,6 +75,17 @@ class SendMessage extends React.Component {
         } catch (e) {
             return false;
         }
+    }
+
+    isJson = (str) => {//Returns the parsed object on success, false on failure.
+        // debugger;
+        
+        try {
+            var obj = JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return obj;
     }
 
     onSubmit = (e) => {
@@ -132,6 +150,7 @@ class SendMessage extends React.Component {
                         <MenuItem value={'String'}>String</MenuItem>
                         <MenuItem value={'Number'}>Number</MenuItem>
                         <MenuItem value={'Object'}>Object</MenuItem>
+                        <MenuItem value={'JSON'}>JSON</MenuItem>
 
                     </Select>
                     <FormHelperText>Select message type</FormHelperText>
@@ -140,6 +159,7 @@ class SendMessage extends React.Component {
 
                 {this.state.tab === 'Number' && <NumberMessage onChange={this.onMessageChange} value={this.state.message} />}
                 {this.state.tab === 'Object' && <ObjectMessage error={this.state.error} onChange={this.onMessageChange} value={this.state.message} />}
+                {this.state.tab === 'JSON' && <ObjectMessage JSON error={this.state.error} onChange={this.onMessageChange} value={this.state.message} />}
 
 
                 <Button disabled={!this.props.connected || this.state.error} type="submit" variant="contained" color="primary" >
