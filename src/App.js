@@ -112,9 +112,10 @@ export default observer(
       //   })
       // }
       const instance = {
-        address: "",
+        address: "http://localhost:3001",
         id: uuid(),
         socket: null,
+        configString: "",
         messages: [],
         // messages: fakeMessages,
         registeredEvents: {},
@@ -126,13 +127,32 @@ export default observer(
       return instance;
     }
 
+    createConfigObjectFromString = (str) => {
+      if (!str)
+        return;
 
+      let evalResult;
+      eval(`evalResult = ${str}`);
+      return evalResult
 
-    connect = (address, config) => {//Fired after a certain instance(tab) wants to create the initial connection
+    }
+
+    onHeaderValueChange = (name, val) => {
+
+      const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
+
+      const { instances, instance } = this.getInstanceSlice(instanceId);
+
+      instance[name] = val;
+
+      this.setState(() => ({ instances }));
+
+    }
+   
+
+    connect = (address,configString) => {//Fired after a certain instance(tab) wants to create the initial connection
       console.log('connecting');
-      console.log(JSON.parse(JSON.stringify(config)));
-      
-      // const currentState = 
+     
 
       const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
 
@@ -140,15 +160,15 @@ export default observer(
 
       instance.connectionStatus = 'connecting';
 
+      const parsedConfig = this.createConfigObjectFromString(configString);
+
       this.setState(() => ({ instances }));
 
       if (instance.socket) {
         instance.socket.disconnect();
       }
 
-      
-
-      var socket = instance.socket = config ? io(address, config) : io(address);
+      var socket = instance.socket = parsedConfig ? io(address, parsedConfig) : io(address);
 
 
       instance.originalOnevent = socket.onevent;//Create a reference to the original onevent function of SocketIO, to be used by the "listen to all events" mechanism.
@@ -173,7 +193,7 @@ export default observer(
           createAlertAction('error', 'Disconnected from the server');
 
           const instanceId = this.getInstanceBySocketId(socket.id).id;
-          
+
 
           this.disconnectManually(instanceId);
 
@@ -385,8 +405,8 @@ export default observer(
 
 
 
-    onConnectSubmit = (address, query) => {
-      this.connect(address, query);
+    onConnectSubmit = (address, config) => {
+      this.connect(address, config);
     }
 
 
@@ -432,7 +452,7 @@ export default observer(
 
 
     onMessageFail = (instanceId, messageId) => {//Fired when a message failed to receive a callback after a certain period of time.
-      this.changeMessage(instanceId, messageId, 'status', 'fail')
+      this.changeMessage(instanceId, messageId, {status:'fail'})
     }
 
 
@@ -455,7 +475,7 @@ export default observer(
         // debugger;
 
 
-        this.changeMessage(instanceId, messageId, 'status', 'success');
+        this.changeMessage(instanceId, messageId, {status:'success'});
 
 
       }
@@ -477,7 +497,7 @@ export default observer(
     onMessageResend = (instanceId, messageId) => {//Fired when the user tries to resend a failed message.
       // debugger;
 
-      this.changeMessage(instanceId, messageId, 'status', 'pending');
+      this.changeMessage(instanceId, messageId, {status:'pending'});
 
       const { instance } = this.getInstanceSlice(instanceId);
 
@@ -496,16 +516,19 @@ export default observer(
 
 
 
-    changeMessage = (instanceId, messageId, prop, value) => {//Function that changes properties of a message(particularly "status").
+    changeMessage = (instanceId, messageId, obj) => {//Function that changes properties of a message(particularly "status").
 
       const { instances, instance } = this.getInstanceSlice(instanceId);
+
+      // const multipleProps = typeof prop === 'object' && Array.isArray(prop);
 
       this.setState(() => {
         const messages = instance.messages.map((message) => {
           if (message.id === messageId) {
+            
             return {
               ...message,
-              [prop]: value
+              ...obj
             }
           } else {
             return message;
@@ -681,7 +704,7 @@ export default observer(
 
       const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)//Get the currently active instance.
 
-      const { connectionStatus, allEventsChecked, registeredEvents, messages, address } = instance;//Extract the props.
+      const { connectionStatus, allEventsChecked, registeredEvents, messages, address, configString } = instance;//Extract the props.
 
       console.log('length from app render', messages.length)
       const activeInstanceId = instance.id;
@@ -724,7 +747,17 @@ export default observer(
               </Tabs>
             </AppBar>
 
-            <Header address={address} connectionStatus={connectionStatus} onDisconnectSubmit={this.onDisconnectSubmit} onConnectSubmit={this.onConnectSubmit}></Header>
+            <Header
+              onAddressChange={(val) => { this.onHeaderValueChange('address', val) }}
+              onConfigStringChange={(val) => { this.onHeaderValueChange('configString', val) }}
+              key={activeInstanceId}
+              address={address}
+              configString={configString}
+              connectionStatus={connectionStatus}
+              onDisconnectSubmit={this.onDisconnectSubmit}
+              onConnectSubmit={()=>{this.onConnectSubmit(address,configString)}}//"address" and "configString" are declared in the top of render.
+            >
+            </Header>
 
 
 

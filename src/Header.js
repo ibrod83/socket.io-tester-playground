@@ -87,7 +87,7 @@ const styles = theme => (
             boxShadow: theme.shadows[5],
             padding: theme.spacing.unit * 4,
             outline: 'none',
-          }
+        }
     }
 );
 
@@ -96,15 +96,17 @@ class Header extends React.Component {
     state = {
         address: "localhost:3001",
         configOpen: false,
-        configValue: ""
+        configString: "",
+        configError: false
     }
 
     onChange = (e) => {
-        const name = e.target.name;
+        // const name = e.target.name;
         const value = e.target.value;
-        this.setState({
-            [name]: value
-        })
+        // this.setState({
+        //     [name]: value
+        // })
+        this.props.onAddressChange(value);
     }
 
     onSubmit = (e) => {
@@ -125,13 +127,13 @@ class Header extends React.Component {
         }
     }
 
-    isObject = (value) => {//Returns the parsed object on success, false on failure.
+    isObject = (value,returnParsed=false) => {//Returns the parsed object on success, false on failure.
         // debugger;
         let evalResult;
         try {
             eval(`evalResult = ${value}`) // if it doesn't throw it's a valid array or object
             if (typeof evalResult === 'object') {
-                return evalResult;
+                return returnParsed ? evalResult : true;
             } else {
                 return false;
             }
@@ -142,19 +144,20 @@ class Header extends React.Component {
 
     onConnectSubmit = (e) => {
 
-        let config;
-        if (this.state.configValue !== "") {
-            config = this.isObject(this.state.configValue);
-            // debugger;
-            console.log('options',config)
-            if (!config) {
-                return alert('Invalid json');
+        // let config;
+        let value =this.props.configString; 
+        if (value !== "") {
+            const isObject = this.isObject(value);
+            // console.log('options', config)
+            if (!isObject) {
+                return alert('Invalid configuration object!');
             }
+            // value = parsedObject;
         }
 
         // e.preventDefault();
         // alert(this.state.address)
-        this.props.onConnectSubmit(this.state.address, config);
+        this.props.onConnectSubmit(this.state.address, value ? value : null);
     }
 
     onDisconnectSubmit = (e) => {
@@ -200,40 +203,37 @@ class Header extends React.Component {
         this.setState({ configOpen: !this.state.configOpen })
     }
 
-    onOptionsChange = (configValue)=>{
-        console.log(configValue);
-        this.setState({configValue})
+    onConfigStringChange = (configString) => {
+        console.log(configString);
+        const isObject = this.isObject(configString);
+        this.setState({ configError:!isObject })
+        this.props.onConfigStringChange(configString);
     }
 
-    
-      
-    // getModalStyle=()=> {      
 
-    //     return {
-    //         top: `${top}%`,
-    //         left: `${left}%`,
-    //         transform: `translate(-${top}%, -${left}%)`,
-    //     };
-    // }
-
-    handleModalClose = ()=>{
-        this.setState((state)=>{
-          return  {configOpen:!state.configOpen}
+    handleModalClose = () => {
+        this.setState((state) => {
+            return { configOpen: !state.configOpen }
         })
     }
 
+   
+
+   
+
     render() {
-       
-        const { classes, connectionStatus } = this.props;
-        let address;
-        let disabled;
+
+        const { classes,address,configString, connectionStatus } = this.props;     
+
+        let disabled;  
+
         if (connectionStatus === 'connected' || connectionStatus === 'connecting' || connectionStatus === 'reconnecting') {
-            address = this.props.address;
             disabled = true;
         } else {
-            address = this.state.address;
             disabled = false;
         }
+
+
         return (
             <form autoComplete="off" onSubmit={this.onSubmit} className={classes.root}>
                 <AppBar position="static">
@@ -262,8 +262,9 @@ class Header extends React.Component {
 
 
                         <Tooltip title="Add configuration">
-                                
+
                             <IconButton
+                            disabled={disabled}
                                 key="close"
                                 aria-label="Close"
                                 color="inherit"
@@ -287,12 +288,12 @@ class Header extends React.Component {
                             open={this.state.configOpen}
                             onClose={this.handleModalClose}
                         >
-                            <div style={{top:'50%',left:'50%',transform: `translate(-${50}%, -${50}%)`}} className={classes.paper}>
+                            <div style={{ top: '50%', left: '50%', transform: `translate(-${50}%, -${50}%)` }} className={classes.paper}>
                                 <Typography variant="h5">Provide a configuration object to SocketIO. The string will be evaluated into a JS object</Typography>
-                               <ObjectMessage onChange={this.onOptionsChange}></ObjectMessage>
-                               <Button onClick={this.handleModalClose} color="primary">Confirm</Button>
+                                <ObjectMessage value={configString} error={this.state.configError} onChange={this.onConfigStringChange}></ObjectMessage>
+                                <Button onClick={this.handleModalClose} color="primary">Confirm</Button>
                             </div>
-                           
+
                         </Modal>
 
 
