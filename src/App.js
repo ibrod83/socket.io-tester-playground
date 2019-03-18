@@ -13,7 +13,7 @@ import Tab from '@material-ui/core/Tab';
 import AppBar from '@material-ui/core/AppBar';
 import { withStyles } from '@material-ui/core/styles';
 // import Fab from '@material-ui/core/Fab';
-
+import RemovableTab from './Utilities/RemovableTab';
 import AddIcon from '@material-ui/icons/Add';
 import ClearIcon from '@material-ui/icons/Clear';
 // import { runInAction } from 'mobx';
@@ -112,7 +112,7 @@ export default observer(
       //   })
       // }
       const instance = {
-        address: "http://localhost:3001",
+        address: "http://localhost:3001/jpg",
         id: uuid(),
         socket: null,
         configString: "",
@@ -148,11 +148,11 @@ export default observer(
       this.setState(() => ({ instances }));
 
     }
-   
 
-    connect = (address,configString) => {//Fired after a certain instance(tab) wants to create the initial connection
+
+    connect = (address, configString) => {//Fired after a certain instance(tab) wants to create the initial connection
       console.log('connecting');
-     
+
 
       const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
 
@@ -263,14 +263,7 @@ export default observer(
       const socket = instance.socket;//The socket associated with this instance.
 
       if (socket) {
-
-        socket.off(eventName);//Remove any existing listener for that event on this socket, to prevent duplication.
-
-        socket.on(eventName, (data) => {//Register the event with the given socket.
-
-          this.addMessageToState(instanceId, eventName, data, false)
-
-        })
+        this.registerEventToSocket(instanceId,socket,eventName) 
       }
 
       instance.registeredEvents[eventName] = { name: eventName };//"instance" is not to be confused with the one from the callback scope.
@@ -279,17 +272,43 @@ export default observer(
 
     }
 
+    registerEventToSocket = (instanceId,socket, eventName) => {
+      socket.off(eventName);
 
-    addMessageToState = (instanceId, eventName, data, owner) => {
+      socket.on(eventName, (arg1,arg2,arg3) => {
+        console.log('on:', eventName,arg1,arg2,arg3)
+        // this.addMessageToState(instanceId, eventName, args, false)
+      })
+      socket.on(eventName, (...args) => {
+        console.log('on:', eventName, args)
+        const lastArg = args[args.length - 1];
+        const isFunction = this.isFunction(lastArg);
+
+        if (isFunction) {
+          lastArg();//If a callback was supplied from the server, it is invoked.
+          var index = args.indexOf(lastArg);
+          if (index > -1) {
+            args.splice(index, 1);
+          }
+
+        }
+
+        this.addMessageToState(instanceId, eventName, args, false)
+      })
+    }
+
+
+    addMessageToState = (instanceId, eventName, args, owner,status) => {
 
       const messageId = uuid();
 
       const { instances, instance } = this.getInstanceSlice(instanceId);
 
       const time = this.getTime();
+      // debugger;
       //*****UNDESRSTAND WHY THIS WASNT WORKING!!! */
       // instance.messages.push({ id: messageId, eventName, time, data, owner, status: 'pending' })//Adding a message to the instance.
-      instance.messages = [...instance.messages, { id: messageId, eventName, time, data, owner, status: 'pending' }]
+      instance.messages = [...instance.messages, { id: messageId, eventName, time, args, owner, status }]
 
       this.setState(() => ({ instances }));
 
@@ -360,11 +379,9 @@ export default observer(
       const socket = instance.socket;
 
       if (socket) {
-        socket.off(eventName);
-        socket.on(eventName, (data) => {
-          console.log('on:', eventName)
-          this.addMessageToState(instanceId, eventName, data, false)
-        })
+       
+        this.registerEventToSocket(instanceId,socket,eventName)
+
       }
 
       this.setState(() => ({ instances }));
@@ -436,59 +453,68 @@ export default observer(
     }
 
 
-    onMessageSubmit = (eventName, data) => {
+    onMessageSubmit = (eventName, args,useCallback) => {
       const instanceId = this.state.activeInstance;
 
       const { instance } = this.getInstanceSlice(instanceId);
 
       const socket = instance.socket;
 
-      const messageId = this.addMessageToState(instanceId, eventName, data, true);
+      const messageId = this.addMessageToState(instanceId, eventName, args, true,useCallback && 'pending' );
 
-      this.createMessageHandler(instanceId, socket, messageId, eventName, data);
+      const callback = useCallback ?  this.createAcknowledgementHandler(instanceId, messageId) : null;
+
+      this.sendMessageToServer(socket, eventName, args, callback);
     }
 
 
 
 
     onMessageFail = (instanceId, messageId) => {//Fired when a message failed to receive a callback after a certain period of time.
-      this.changeMessage(instanceId, messageId, {status:'fail'})
+      this.changeMessage(instanceId, messageId, { status: 'fail' })
     }
 
 
 
 
-    createMessageHandler = (instanceId, socket, messageId, eventName, data) => {//Creates the logic to handle the message success/failure.
-
+    createAcknowledgementHandler = (instanceId, messageId) => {//Creates the logic to handle the message success/failure.
+      // debugger;
       var timeoutId = setTimeout(() => {//Timeout function that waits for the message callback.
 
         if (this.doesInstanceExist(instanceId)) {//This condition is to make sure, the instance still exists when the callback is fired.
           this.onMessageFail(instanceId, messageId);
         }
 
-      }, 2000);
+      }, 5000);
 
-      const callback = (data) => {
+      return (callbackData) => {
+        // debugger;
         clearTimeout(timeoutId);//Clear the timeout, so that an error is not fired.
         // debugger;
-        console.log('data from callback', data)
+        console.log('response from callback', callbackData)
         // debugger;
 
 
-        this.changeMessage(instanceId, messageId, {status:'success'});
+        this.changeMessage(instanceId, messageId, { status: 'success',callbackData });
 
 
       }
 
-      this.sendMessageToServer(socket, eventName, data, callback);
+      // this.sendMessageToServer(socket, eventName, args, callback);
 
 
     }
 
 
 
-    sendMessageToServer = (socket, eventName, data, callback) => {//Emits the event.
-      socket.emit(eventName, data, callback);
+    sendMessageToServer = (socket, eventName, args, callback) => {//Emits the event.
+      if(callback){
+         socket.emit(eventName, ...args, callback);//"data" can be multiple arguments.
+      }else{
+        socket.emit(eventName, ...args);//"data" can be multiple arguments.
+      }
+     
+
     }
 
 
@@ -497,7 +523,7 @@ export default observer(
     onMessageResend = (instanceId, messageId) => {//Fired when the user tries to resend a failed message.
       // debugger;
 
-      this.changeMessage(instanceId, messageId, {status:'pending'});
+      this.changeMessage(instanceId, messageId, { status: 'pending' });
 
       const { instance } = this.getInstanceSlice(instanceId);
 
@@ -507,9 +533,11 @@ export default observer(
 
       const socket = instance.socket;
 
-      const data = message.data;
+      const args = message.args;
 
-      this.createMessageHandler(instanceId, socket, messageId, eventName, data)
+      const callback = this.createAcknowledgementHandler(instanceId, messageId);
+
+      this.sendMessageToServer(socket, eventName, args, callback);
 
     }
 
@@ -525,7 +553,7 @@ export default observer(
       this.setState(() => {
         const messages = instance.messages.map((message) => {
           if (message.id === messageId) {
-            
+
             return {
               ...message,
               ...obj
@@ -610,6 +638,10 @@ export default observer(
 
     }
 
+    isFunction = (functionToCheck) => {
+      return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+    }
+
 
 
     handleAlertClose = (event, reason) => {
@@ -618,6 +650,7 @@ export default observer(
 
 
     changeActiveInstance = (id) => {//Fired when user changes the tab.
+      // debugger;
       this.setState(() => ({ activeInstance: id }))
 
     }
@@ -635,9 +668,9 @@ export default observer(
 
 
 
-    destroyInstance = (e, id) => {//Fired when a user destroys a tab.
+    destroyInstance = ( id) => {//Fired when a user destroys a tab.
 
-      e.stopPropagation();
+      // e.stopPropagation();
       // debugger;
       console.log('destroy instance!')
 
@@ -722,16 +755,16 @@ export default observer(
             <AppBar color="default" position="static">
               <Tabs indicatorColor="primary" textColor="primary" value={tabIndex} onChange={this.handleChange}>
                 {instances.map(instance =>
-
-                  <StyledTab
-
-                    // style={{ textTransform: 'initial' }}
-                    onClick={() => { this.changeActiveInstance(instance.id) }}
-                    label={this.getTabAddress(instance)}
-                    icon={instance.id !== firstInstance.id ? <StyledClearIcon onClick={(e) => { this.destroyInstance(e, instance.id) }}></StyledClearIcon> : null}
-                  >
-
-                  </StyledTab>
+                  <RemovableTab
+                    //  color="primary"
+                     click={() => { this.changeActiveInstance(instance.id) }}   
+                     label={this.getTabAddress(instance)}
+                     onClose= {() => { this.destroyInstance( instance.id) }}
+                     showIcon={instance.id !== firstInstance.id}              
+                  />
+                  
+                   
+                  
 
 
 
@@ -755,7 +788,7 @@ export default observer(
               configString={configString}
               connectionStatus={connectionStatus}
               onDisconnectSubmit={this.onDisconnectSubmit}
-              onConnectSubmit={()=>{this.onConnectSubmit(address,configString)}}//"address" and "configString" are declared in the top of render.
+              onConnectSubmit={() => { this.onConnectSubmit(address, configString) }}//"address" and "configString" are declared in the top of render.
             >
             </Header>
 
@@ -768,6 +801,7 @@ export default observer(
 
                 <div id="send_messages">
                   <Typography gutterBottom variant="h6">Send messages</Typography>
+
                   <SendMessage connected={connectionStatus === 'connected'} onSubmit={this.onMessageSubmit}></SendMessage>
 
                 </div>
@@ -817,7 +851,10 @@ export default observer(
 
                 </Typography>
 
-                <Messages onMessageResend={(messageId) => { this.onMessageResend(activeInstanceId, messageId) }} instanceId={activeInstanceId} messages={messages} />
+                <Messages
+                  onMessageResend={(messageId) => { this.onMessageResend(activeInstanceId, messageId) }}
+                  instanceId={activeInstanceId}
+                  messages={messages} />
                 <div style={{ float: "left", clear: "both" }} id="dummy">
 
                 </div>

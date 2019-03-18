@@ -31,11 +31,15 @@ class Message extends React.Component {
         // debugger;
         switch (typeof message) {
             case 'string':
+                if (this.IsJsonString(message)) {
+                    return 'JSON';
+                }
                 return 'String'
             case 'object':
                 if (Array.isArray(message)) {
                     return 'Array';
-                } else {
+                }
+                else {
                     return 'Object';
                 }
             case 'number':
@@ -44,6 +48,15 @@ class Message extends React.Component {
             default:
                 break;
         }
+    }
+
+    IsJsonString = (str) => {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
     }
 
 
@@ -107,6 +120,49 @@ class Message extends React.Component {
         return false;
     }
 
+    MessageCallbackData = (data) => {
+        return (
+            <div >
+                <br />
+                <Typography>
+                    Data from callback:
+                         <ObjectInspector theme={{ ...chromeLight, ...({ TREENODE_FONT_SIZE: '18px', TREENODE_FONT_FAMILY: 'roboto,helvetica,arial' }) }} data={data} />
+                </Typography>
+
+            </div>
+        )
+
+    }
+
+    renderSingleArgumentMessage = (arg) => {
+        return <div>
+            <Typography color="textSecondary" gutterBottom>
+                Type: {this.getType(arg)}
+            </Typography>
+            <ObjectInspector theme={{ ...chromeLight, ...({ TREENODE_FONT_SIZE: '18px', TREENODE_FONT_FAMILY: 'roboto,helvetica,arial' }) }} data={arg} />
+
+        </div>
+    }
+
+    renderMultipleArgumentMessage = (args) => {
+        return args.map((arg, index) => {
+            const i = index + 1;
+            return <div>
+                <Typography>Argument {i}</Typography>
+                <Typography color="textSecondary" gutterBottom>
+                    Type: {this.getType(arg)}
+                </Typography>
+                <ObjectInspector theme={{ ...chromeLight, ...({ TREENODE_FONT_SIZE: '18px', TREENODE_FONT_FAMILY: 'roboto,helvetica,arial' }) }} data={arg} />
+                <Tooltip title="Copy to clipboard">
+                    <IconButton onClick={() => { this.onDataCopy(arg) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
+                </Tooltip>
+
+                {i !== args.length && <br />}
+            </div>
+        })
+
+    }
+
 
 
 
@@ -117,8 +173,9 @@ class Message extends React.Component {
 
 
     render() {
-        const { owner, data, id, time, status, eventName } = this.props.message;
+        const { owner, args, id, time, status, eventName, callbackData } = this.props.message;
         console.log('item rendering!', this.props)
+
         return (
 
 
@@ -132,22 +189,20 @@ class Message extends React.Component {
                     <Typography color="primary" gutterBottom>
                         {owner ? 'Sent' : 'Received'} event: {eventName}
                     </Typography>
+                    {args.length === 1 ? this.renderSingleArgumentMessage(args[0]) : this.renderMultipleArgumentMessage(args)}
 
-                    <Typography color="textSecondary" gutterBottom>
-                        Type: {this.getType(data)}
-                    </Typography>
-                    <ObjectInspector theme={{ ...chromeLight, ...({ TREENODE_FONT_SIZE: '18px', TREENODE_FONT_FAMILY: 'roboto,helvetica,arial' }) }} data={data} />
 
                     <div style={{ float: 'right', position: 'relative', left: '6px', bottom: '49px' }} >
-                        <Tooltip title="Copy to clipboard">
-                            <IconButton onClick={() => { this.onDataCopy(data) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
-                        </Tooltip>
-                        {owner && (
+                        {args.length === 1 && <Tooltip title="Copy to clipboard">
+                            <IconButton onClick={() => { this.onDataCopy(args) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
+                        </Tooltip>}
+
+                        {status && owner && (
 
                             <div style={{ textAlign: 'center' }}>
                                 {status === 'fail' ? (
                                     <Tooltip title="Resend message">
-                                        <IconButton style={{padding:'2px'}} onClick={() => { this.onMessageResend(id) }} aria-label="Resend message">
+                                        <IconButton style={{ padding: '2px' }} onClick={() => { this.onMessageResend(id) }} aria-label="Resend message">
                                             <RefreshIcon style={{ color: 'red' }} />
                                         </IconButton>
                                     </Tooltip>
@@ -164,6 +219,7 @@ class Message extends React.Component {
                         )}
 
                     </div>
+                    {callbackData && this.MessageCallbackData(callbackData)}
                 </CardContent>
 
 
