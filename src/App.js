@@ -64,7 +64,19 @@ export default observer(
   class App extends Component {
 
     constructor(props) {
+      // debugger;
+      // this.setState = (data)=>{
+      //   alert('setstate was called!')
+      //   this.setState(data)
+      // }
+
       super(props);
+      // console.log(this)
+      // this.original = this.setState;
+      // this.setState = (data)=>{
+      //   console.log('setstate was called!',data)
+      //   this.original(data)
+      // }
       // this.messages = React.createRef();
       const instance0 = this.generateInstance();
       // const instance1 = this.generateInstance();
@@ -73,6 +85,41 @@ export default observer(
         activeInstance: instance0.id//The instance represented by the active tab.
       }
     }
+
+    // componentDidMount() {
+    //   this.createMockMessages(1000);
+    // }
+
+    // createMockMessages = (num) => {
+
+    //   // for (let ins of this.state.instances) {
+    //     const messages = []
+    //     for (let i = 0; i < num; i++) {
+    //       messages.push({
+    //         id: uuid(),
+    //         owner: true,
+    //         time: this.getTime(),
+    //         eventName: this.state.activeInstance,
+    //         args: [i + 1]
+
+    //       })
+    //     }
+    //     // debugger;
+    //     const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
+    //     instance.messages = messages;
+    //     this.setState(()=>({instances}))
+    //   // }
+
+    // }
+
+    // getMessagesSlice = window.getMessagesSlice = (begin, end) => {
+    //   const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
+    //   const messages = instance.messages.slice(begin, end);
+    //   // console.log(messages)
+    //   return messages;
+    // }
+
+
 
 
     getActiveInstance = () => {
@@ -112,7 +159,7 @@ export default observer(
       //   })
       // }
       const instance = {
-        address: "http://localhost:3001/jpg",
+        address: "http://localhost:3001",
         id: uuid(),
         socket: null,
         configString: "",
@@ -263,7 +310,7 @@ export default observer(
       const socket = instance.socket;//The socket associated with this instance.
 
       if (socket) {
-        this.registerEventToSocket(instanceId,socket,eventName) 
+        this.registerEventToSocket(instanceId, socket, eventName)
       }
 
       instance.registeredEvents[eventName] = { name: eventName };//"instance" is not to be confused with the one from the callback scope.
@@ -272,11 +319,11 @@ export default observer(
 
     }
 
-    registerEventToSocket = (instanceId,socket, eventName) => {
+    registerEventToSocket = (instanceId, socket, eventName) => {
       socket.off(eventName);
 
-      socket.on(eventName, (arg1,arg2,arg3) => {
-        console.log('on:', eventName,arg1,arg2,arg3)
+      socket.on(eventName, (arg1, arg2, arg3) => {
+        console.log('on:', eventName, arg1, arg2, arg3)
         // this.addMessageToState(instanceId, eventName, args, false)
       })
       socket.on(eventName, (...args) => {
@@ -298,7 +345,7 @@ export default observer(
     }
 
 
-    addMessageToState = (instanceId, eventName, args, owner,status) => {
+    addMessageToState = (instanceId, eventName, args, owner, status) => {
 
       const messageId = uuid();
 
@@ -379,8 +426,8 @@ export default observer(
       const socket = instance.socket;
 
       if (socket) {
-       
-        this.registerEventToSocket(instanceId,socket,eventName)
+
+        this.registerEventToSocket(instanceId, socket, eventName)
 
       }
 
@@ -453,16 +500,16 @@ export default observer(
     }
 
 
-    onMessageSubmit = (eventName, args,useCallback) => {
+    onMessageSubmit = (eventName, args, useCallback) => {
       const instanceId = this.state.activeInstance;
 
       const { instance } = this.getInstanceSlice(instanceId);
 
       const socket = instance.socket;
 
-      const messageId = this.addMessageToState(instanceId, eventName, args, true,useCallback && 'pending' );
+      const messageId = this.addMessageToState(instanceId, eventName, args, true, useCallback && 'pending');
 
-      const callback = useCallback ?  this.createAcknowledgementHandler(instanceId, messageId) : null;
+      const callback = useCallback ? this.createAcknowledgementHandler(instanceId, messageId) : null;
 
       this.sendMessageToServer(socket, eventName, args, callback);
     }
@@ -495,7 +542,7 @@ export default observer(
         // debugger;
 
 
-        this.changeMessage(instanceId, messageId, { status: 'success',callbackData });
+        this.changeMessage(instanceId, messageId, { status: 'success', callbackData });
 
 
       }
@@ -508,12 +555,12 @@ export default observer(
 
 
     sendMessageToServer = (socket, eventName, args, callback) => {//Emits the event.
-      if(callback){
-         socket.emit(eventName, ...args, callback);//"data" can be multiple arguments.
-      }else{
+      if (callback) {
+        socket.emit(eventName, ...args, callback);//"data" can be multiple arguments.
+      } else {
         socket.emit(eventName, ...args);//"data" can be multiple arguments.
       }
-     
+
 
     }
 
@@ -668,7 +715,7 @@ export default observer(
 
 
 
-    destroyInstance = ( id) => {//Fired when a user destroys a tab.
+    destroyInstance = (id) => {//Fired when a user destroys a tab.
 
       // e.stopPropagation();
       // debugger;
@@ -741,6 +788,7 @@ export default observer(
 
       console.log('length from app render', messages.length)
       const activeInstanceId = instance.id;
+      console.log('activeinstanceid',activeInstanceId)
 
       const tabIndex = instances.indexOf(instance);
 
@@ -757,14 +805,14 @@ export default observer(
                 {instances.map(instance =>
                   <RemovableTab
                     //  color="primary"
-                     click={() => { this.changeActiveInstance(instance.id) }}   
-                     label={this.getTabAddress(instance)}
-                     onClose= {() => { this.destroyInstance( instance.id) }}
-                     showIcon={instance.id !== firstInstance.id}              
+                    click={() => { this.changeActiveInstance(instance.id) }}
+                    label={this.getTabAddress(instance)}
+                    onClose={() => { this.destroyInstance(instance.id) }}
+                    showIcon={instance.id !== firstInstance.id}
                   />
-                  
-                   
-                  
+
+
+
 
 
 
@@ -850,14 +898,12 @@ export default observer(
                   )}
 
                 </Typography>
-
+              
                 <Messages
                   onMessageResend={(messageId) => { this.onMessageResend(activeInstanceId, messageId) }}
                   instanceId={activeInstanceId}
                   messages={messages} />
-                <div style={{ float: "left", clear: "both" }} id="dummy">
-
-                </div>
+               
 
               </div>
             </div>

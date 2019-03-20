@@ -1,5 +1,6 @@
 import React from 'react';
 import Message from './Message';
+import { List } from "react-virtualized";
 
 
 
@@ -10,25 +11,28 @@ export default class extends React.Component {
         this.messagesDiv = document.querySelector('#messages');//The scrolled container
 
         this.messagesList = document.querySelector('#messages_list');//The actual UL. The ID is set in the messages component.
-    }
 
-    componentDidUpdate(prevProps) {
-        // debugger;
-
-        // console.log('prev props', prevProps)
-        // console.log('current props', this.props)
-
-        if(this.props.instanceId !== prevProps.instanceId)
-            return this.scrollToBottom();
-
-        if (this.props.messages.length > 0 && prevProps.messages.length !== this.props.messages.length) {
-            if (this.shouldScrollDown(this.props.messages[this.props.messages.length - 1])) {
-                this.scrollToBottom();
-            }
-
-        }
 
     }
+
+
+    // componentDidUpdate(prevProps) {
+    //     // debugger;
+
+    //     // console.log('prev props', prevProps)
+    //     // console.log('current props', this.props)
+
+    //     if (this.props.instanceId !== prevProps.instanceId)
+    //         return this.scrollToBottom();
+
+    //     if (this.props.messages.length > 0 && prevProps.messages.length !== this.props.messages.length) {
+    //         if (this.shouldScrollDown(this.props.messages[this.props.messages.length - 1])) {
+    //             this.scrollToBottom();
+    //         }
+
+    //     }
+
+    // }
 
 
 
@@ -63,8 +67,23 @@ export default class extends React.Component {
 
     }
 
+    scrollToMessage = window.scroll = (id) => {
+        const div = document.getElementById(`${id}`);
+        div.scrollIntoView({ behavior: "smooth" });
+    }
+
+    renderRow = ({ index, key, style }) => {
+        return
+    }
+
+
+
     // console.log(window.copy)
     render() {
+
+        const listHeight = 1000;
+        const rowHeight = 123;
+        const rowWidth = 1000;
         return (
 
 

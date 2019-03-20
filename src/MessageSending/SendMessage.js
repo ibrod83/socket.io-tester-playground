@@ -17,8 +17,8 @@ export default class SendMessage extends React.Component {
         useCallback: false,
         args: [
             {
-                message: "{}",
-                type: 'File',
+                message: "",
+                type: 'String',
                 error: false
             },
             // {

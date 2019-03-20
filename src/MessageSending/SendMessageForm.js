@@ -15,6 +15,7 @@ import Select from '@material-ui/core/Select';
 import StringMessage from './StringMessage';
 import NumberMessage from './NumberMessage';
 import FileMessage from './FileMessage';
+import BooleanMessage from './BooleanMessage';
 import ObjectMessage from './ObjectMessage';
 import { Typography } from '@material-ui/core';
 
@@ -151,6 +152,7 @@ class SendMessageForm extends React.Component {
                         <MenuItem value={'Object'}>Object</MenuItem>
                         <MenuItem value={'JSON'}>JSON</MenuItem>
                         <MenuItem value={'File'}>File</MenuItem>
+                        <MenuItem value={'Boolean'}>Boolean</MenuItem>
 
                     </Select>
                     <FormHelperText>Select message type</FormHelperText>
@@ -160,7 +162,8 @@ class SendMessageForm extends React.Component {
                 {this.props.type === 'Number' && <NumberMessage onChange={this.onMessageChange} value={this.props.message} />}
                 {this.props.type === 'Object' && <ObjectMessage error={this.props.error} onChange={this.onMessageChange} value={this.props.message} />}
                 {this.props.type === 'JSON' && <ObjectMessage JSON error={this.props.error} onChange={this.onMessageChange} value={this.props.message} />}
-                {this.props.type === 'File' && <FileMessage error={this.props.error} onChange={this.onMessageChange} value={this.props.message} />}        
+                {this.props.type === 'File' && <FileMessage onChange={this.onMessageChange} value={this.props.message} />}        
+                {this.props.type === 'Boolean' && <BooleanMessage  onChange={this.onMessageChange} value={typeof this.props.message === 'boolean' ? this.props.message: true} />}        
 
                 <Button disabled={!this.props.connected || this.props.error} type="submit" variant="contained" color="primary" >
                     Send
