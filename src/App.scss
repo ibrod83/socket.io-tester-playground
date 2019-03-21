@@ -11,6 +11,7 @@ input[type='text'] {
 
 body,
 html {
+    overflow-y: hidden;
     height: 100vh;
     margin: 0px;
 }
@@ -35,11 +36,13 @@ html {
 #wrapper,
 #root {
     height: 100%;
+   
 }
 
 #main {
     display: flex;
     height: auto;
+    
     min-height: 87%;
     max-height: 87%;
 }
@@ -69,5 +72,6 @@ html {
     padding: 10px;
     /* border:1px solid black; */
     width: 70%;
+    // max-width:70%;
     overflow-y: scroll;
 }

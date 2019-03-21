@@ -5,17 +5,17 @@ import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import DeleteSweepIcon from '@material-ui/icons/DeleteSweep';
-import Tooltip from '@material-ui/core/Tooltip';
+// import DeleteSweepIcon from '@material-ui/icons/DeleteSweep';
+// import Tooltip from '@material-ui/core/Tooltip';
 import { observer } from 'mobx-react';
 import Tabs from '@material-ui/core/Tabs';
-import Tab from '@material-ui/core/Tab';
+// import Tab from '@material-ui/core/Tab';
 import AppBar from '@material-ui/core/AppBar';
-import { withStyles } from '@material-ui/core/styles';
+// import { withStyles } from '@material-ui/core/styles';
 // import Fab from '@material-ui/core/Fab';
 import RemovableTab from './Utilities/RemovableTab';
 import AddIcon from '@material-ui/icons/Add';
-import ClearIcon from '@material-ui/icons/Clear';
+// import ClearIcon from '@material-ui/icons/Clear';
 // import { runInAction } from 'mobx';
 import Messages from './Messages';
 import RegisteredEvents from './RegisteredEvents';
@@ -41,43 +41,15 @@ const theme = createMuiTheme({
   },
 });
 
-const StyledTab = withStyles({
-  root: {
-    textTransform: 'initial',
-    minHeight: '50px'
-  },
-})(Tab);
-
-const StyledClearIcon = withStyles({
-  root: {
-    fontSize: '20px',
-    position: 'absolute',
-    top: '20px',
-    right: '0px'
-  },
-
-})(ClearIcon);
-
 
 
 export default observer(
   class App extends Component {
 
     constructor(props) {
-      // debugger;
-      // this.setState = (data)=>{
-      //   alert('setstate was called!')
-      //   this.setState(data)
-      // }
 
       super(props);
-      // console.log(this)
-      // this.original = this.setState;
-      // this.setState = (data)=>{
-      //   console.log('setstate was called!',data)
-      //   this.original(data)
-      // }
-      // this.messages = React.createRef();
+
       const instance0 = this.generateInstance();
       // const instance1 = this.generateInstance();
       this.state = {
@@ -87,27 +59,27 @@ export default observer(
     }
 
     // componentDidMount() {
-    //   this.createMockMessages(1000);
+    //   this.createMockMessages(100);
     // }
 
     // createMockMessages = (num) => {
 
     //   // for (let ins of this.state.instances) {
-    //     const messages = []
-    //     for (let i = 0; i < num; i++) {
-    //       messages.push({
-    //         id: uuid(),
-    //         owner: true,
-    //         time: this.getTime(),
-    //         eventName: this.state.activeInstance,
-    //         args: [i + 1]
+    //   const messages = []
+    //   for (let i = 0; i < num; i++) {
+    //     messages.push({
+    //       id: uuid(),
+    //       owner: true,
+    //       time: this.getTime(),
+    //       eventName: this.state.activeInstance,
+    //       args: [i + 1]
 
-    //       })
-    //     }
-    //     // debugger;
-    //     const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
-    //     instance.messages = messages;
-    //     this.setState(()=>({instances}))
+    //     })
+    //   }
+    //   // debugger;
+    //   const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
+    //   instance.messages = messages;
+    //   this.setState(() => ({ instances }))
     //   // }
 
     // }
@@ -150,14 +122,7 @@ export default observer(
 
 
     generateInstance = () => {//Initial structure of an instance.
-      // var fakeMessages=[];
-      // for(let i=0;i<100;i++){
-      //   fakeMessages.push({
-      //     data:'yoyoyo',
-      //     eventName:'welcome',
-      //     id:uuid()
-      //   })
-      // }
+     
       const instance = {
         address: "http://localhost:3001",
         id: uuid(),
@@ -517,7 +482,7 @@ export default observer(
 
 
 
-    onMessageFail = (instanceId, messageId) => {//Fired when a message failed to receive a callback after a certain period of time.
+    onMessageFail = (instanceId, messageId) => {//Fired when a message fails to receive a callback after a certain period of time.
       this.changeMessage(instanceId, messageId, { status: 'fail' })
     }
 
@@ -784,11 +749,12 @@ export default observer(
 
       const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)//Get the currently active instance.
 
-      const { connectionStatus, allEventsChecked, registeredEvents, messages, address, configString } = instance;//Extract the props.
+      // const { connectionStatus, allEventsChecked, registeredEvents, messages, address, configString } = instance;//Extract the props.
+      const { connectionStatus, allEventsChecked, registeredEvents, address, configString } = instance;//Extract the props.
 
-      console.log('length from app render', messages.length)
+      // console.log('length from app render', messages.length)
       const activeInstanceId = instance.id;
-      console.log('activeinstanceid',activeInstanceId)
+      console.log('activeinstanceid', activeInstanceId)
 
       const tabIndex = instances.indexOf(instance);
 
@@ -810,14 +776,6 @@ export default observer(
                     onClose={() => { this.destroyInstance(instance.id) }}
                     showIcon={instance.id !== firstInstance.id}
                   />
-
-
-
-
-
-
-
-
 
                 )}
 
@@ -882,30 +840,21 @@ export default observer(
                 </div>
               </div>
 
-              <div className="special_scroll" id="messages">
 
-                <Typography variant="h6" gutterBottom>
-                  Messages sent/received
-       {messages.length > 0 && (
-                    <div style={{ float: 'right' }}>
+              {/*Rendering all instances into the DOM and showing only one of them, for performance reasons(avoiding re-rendering of all Message components,
+                 when the active instance changes). 
+              */}
+              {this.state.instances.map((instance) => {
+                return <Messages
+                  key={instance.id}
+                  show={activeInstanceId === instance.id ? true : false}//Tell the component if it should be visible in the DOM
+                  onMessagesDelete={this.onMessagesDelete}
+                  onMessageResend={(messageId) => { this.onMessageResend(instance.id, messageId) }}
+                  instanceId={instance.id}
+                  messages={instance.messages} />
 
-                      <Tooltip title="Delete all messages">
-                        <IconButton onClick={this.onMessagesDelete} aria-label="Delete">
-                          <DeleteSweepIcon fontSize="small" color="secondary"></DeleteSweepIcon>
-                        </IconButton>
-                      </Tooltip>
-                    </div>
-                  )}
+              })}
 
-                </Typography>
-              
-                <Messages
-                  onMessageResend={(messageId) => { this.onMessageResend(activeInstanceId, messageId) }}
-                  instanceId={activeInstanceId}
-                  messages={messages} />
-               
-
-              </div>
             </div>
 
           </div>

@@ -21,19 +21,7 @@ export default class AddEvent extends React.Component {
         this.props.onSubmit(this.state.event);
     }
 
-    // render() {
-    //     return (
-    //         <form onSubmit={this.onSubmit} className="form-inline">
-
-    //             <div className="form-group mx-sm-3 mb-2">
-
-    //                 <input onChange={this.onChange} value={this.state.event} type="text" className="form-control" id="event" name="event" placeholder="Event name" />
-    //             </div>
-    //             <button type="submit" className="btn btn-primary mb-2">Register event</button>
-    //         </form>
-
-    //     )
-    // }
+   
     render() {
         return (
             <form onSubmit={this.onSubmit} >

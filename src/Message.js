@@ -12,18 +12,6 @@ import { ObjectInspector } from 'react-inspector'
 import { chromeLight } from 'react-inspector'
 import { createAlertAction } from './global';
 import Tooltip from '@material-ui/core/Tooltip';
-// import { withStyles } from '@material-ui/core/styles';
-// import { Button } from '@material-ui/core';
-
-// const styles = theme => ({
-//     success: {
-//         color: theme.palette.success,
-//     },
-//     pending: {
-//         color: theme.palette.pending
-//     }
-// });
-
 
 class Message extends React.Component {
 
