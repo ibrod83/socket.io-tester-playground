@@ -13,6 +13,13 @@ import CastConnectedIcon from '@material-ui/icons/CastConnected';
 import { fade } from '@material-ui/core/styles/colorManipulator';
 import Typography from '@material-ui/core/Typography';
 import Modal from '@material-ui/core/Modal';
+import Select from '@material-ui/core/Select';
+// import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+// import NativeSelect from '@material-ui/core/NativeSelect';
+
+import InputLabel from '@material-ui/core/InputLabel';
+
 
 import Loader from './Loader'
 
@@ -127,7 +134,7 @@ class Header extends React.Component {
         }
     }
 
-    isObject = (value,returnParsed=false) => {//Returns the parsed object on success, false on failure.
+    isObject = (value, returnParsed = false) => {//Returns the parsed object on success, false on failure.
         // debugger;
         let evalResult;
         try {
@@ -145,7 +152,7 @@ class Header extends React.Component {
     onConnectSubmit = (e) => {
 
         // let config;
-        let value =this.props.configString; 
+        let value = this.props.configString;
         if (value !== "") {
             const isObject = this.isObject(value);
             // console.log('options', config)
@@ -206,7 +213,7 @@ class Header extends React.Component {
     onConfigStringChange = (configString) => {
         console.log(configString);
         const isObject = this.isObject(configString);
-        this.setState({ configError:!isObject })
+        this.setState({ configError: !isObject })
         this.props.onConfigStringChange(configString);
     }
 
@@ -217,15 +224,20 @@ class Header extends React.Component {
         })
     }
 
-   
+    onConnectionTypeChange = name => event => {
+        // debugger;
+        this.props.onConnectionTypeChange(event.target.value)
+    };
 
-   
+
+
+
 
     render() {
 
-        const { classes,address,configString, connectionStatus } = this.props;     
+        const { classes, address, configString, connectionStatus, connectionType } = this.props;
 
-        let disabled;  
+        let disabled;
 
         if (connectionStatus === 'connected' || connectionStatus === 'connecting' || connectionStatus === 'reconnecting') {
             disabled = true;
@@ -238,7 +250,24 @@ class Header extends React.Component {
             <form autoComplete="off" onSubmit={this.onSubmit} className={classes.root}>
                 <AppBar position="static">
                     <Toolbar>
+                        <FormControl >
+                            <InputLabel htmlFor="age-native-simple">Connection type</InputLabel>
+                            <Select
+                                disabled={disabled}
+                                native
+                                value={connectionType}
+                                onChange={this.onConnectionTypeChange('type')}
+                                inputProps={{
+                                    name: 'connectionType',
+                                    id: 'connection_type',
+                                }}
+                            >
 
+                                <option value={'SocketIO'}>SocketIO</option>
+                                <option value={'native'}>Native socket</option>
+
+                            </Select>
+                        </FormControl>
                         <div className={classes.search}>
                             <div className={classes.searchIcon}>
                                 {this.renderStatus()}
@@ -264,7 +293,7 @@ class Header extends React.Component {
                         <Tooltip title="Add configuration">
 
                             <IconButton
-                            disabled={disabled}
+                                disabled={disabled}
                                 key="close"
                                 aria-label="Close"
                                 color="inherit"

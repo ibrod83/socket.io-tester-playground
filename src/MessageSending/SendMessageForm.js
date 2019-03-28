@@ -81,7 +81,7 @@ class SendMessageForm extends React.Component {
 
         return (
             <form className={classes.root} onSubmit={this.onSubmit} autoComplete="off">
-                <div style={{display:'inline-flex',width:'100%'}}>
+                {this.props.callbackOption && <div style={{display:'inline-flex',width:'100%'}}>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -120,9 +120,9 @@ class SendMessageForm extends React.Component {
                    <InfoIcon style={{marginTop:'10px'}} color="default"></InfoIcon>
                 </Tooltip>
             
-                </div>
+                </div>}
                 
-                <TextField
+                {this.props.eventNameOption && <TextField
                     // id="outlined-password-input"
                     label="Event name"
                     required
@@ -135,7 +135,8 @@ class SendMessageForm extends React.Component {
                     // autoComplete="current-password"
                     margin="dense"
                     variant="outlined"
-                />
+                />}
+                
                 <FormControl className={classes.formControl}>
                     <InputLabel htmlFor="age-simple">Format</InputLabel>
                     <Select

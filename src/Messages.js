@@ -13,12 +13,28 @@ export default class extends React.Component {
     constructor(props){
         super(props)
         this.messagesDiv = React.createRef()
+       
+
 
         this.messagesList = React.createRef()
     }
 
+    componentDidMount(){
+        this.messagesDiv.current.addEventListener('scroll',()=>{
+            if(this.messagesDiv.current.clientHeight+ this.messagesDiv.current.scrollTop >= this.messagesDiv.current.scrollHeight){
+                this.props.onScrollToBottom();
+            }else if( this.messagesDiv.current.scrollTop === 0){
+                this.props.onScrollToTop();
+            }
+            // console.log('scrolltop',this.messagesDiv.current.scrollTop,'scrollheight',  this.messagesDiv.current.scrollHeight,'clientheight',this.messagesDiv.current.clientHeight)
+        })
+    }
+
     
     componentDidUpdate(prevProps) {
+
+       
+
 
         if (this.props.instanceId !== prevProps.instanceId)
             return this.scrollToBottom();
@@ -46,6 +62,8 @@ export default class extends React.Component {
             const clientHeight = this.messagesDiv.current.clientHeight;
 
             const scrollTop = this.messagesDiv.current.scrollTop;
+
+            
 
             const lastItemHeight = this.messagesList.current.childNodes[this.messagesList.current.childNodes.length - 1].offsetHeight
 
@@ -79,10 +97,20 @@ export default class extends React.Component {
         this.props.onMessagesDelete();
     }
 
+    getMessagesSlice = window.getMessagesSlice = (begin, end) => {
+      
+      const messages = this.props.messages.slice(begin, end);
+      // console.log(messages)
+      return messages;
+    }
+
 
 
     // console.log(window.copy)
     render() {
+
+        
+
 
         return (
 

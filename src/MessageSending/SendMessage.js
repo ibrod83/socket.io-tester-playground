@@ -8,6 +8,7 @@ import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
 import AddIcon from '@material-ui/icons/Add';
 
+
 export default class SendMessage extends React.Component {
 
     state = {
@@ -134,8 +135,8 @@ export default class SendMessage extends React.Component {
         this.props.onSubmit(this.state.eventName, parsedArgs, this.state.useCallback);
     }
 
-    
-    onArgChange = (e,value) => {
+
+    onArgChange = (e, value) => {
         // debugger;
         const arg = value;
         this.setState({ activeArg: arg })
@@ -195,53 +196,75 @@ export default class SendMessage extends React.Component {
         this.setState({ useCallback: checked });
     }
 
+    // renderSingleTab = () => {
+    //     return <RemovableTab onClose={() => { return }} showIcon={false} name={0} label={`Argument ${1}`}></RemovableTab>
+    // }
+
+    renderMultiArgument = () => {
+
+        return <Tabs
+            value={this.state.activeArg}
+            indicatorColor="primary"
+            textColor="primary"
+            onChange={this.onArgChange}
+        >
+            {this.state.args.map((arg, index) => {
+                return <RemovableTab onClose={() => { this.removeArg(arg) }} showIcon={this.state.args.length > 1} key={index} name={index} label={`Argument ${index + 1}`}></RemovableTab>
+            })}
+            <Tooltip placement="right" enterDelay={350} title="Add an argument">
+                <IconButton onClick={this.addArgument} aria-label="New tab">
+                    <AddIcon />
+                </IconButton>
+            </Tooltip>
+
+        </Tabs>
+
+    }
+
+    // renderSingleArgument = ()=>{
+    //     return <RemovableTab onClose={() => { }} showIcon={false}  name={0} label={`Argument ${1}`}></RemovableTab>
+    // }
+
     render() {
         const activeArg = this.state.args[this.state.activeArg]
         const { message, error, type } = activeArg;
+        const isSocketIO = this.props.multipleArguments;
         // debugger
-        return (
-            <div>
-                <Tabs
-                    value={this.state.activeArg}
-                    indicatorColor="primary"
-                    textColor="primary"
-                    onChange={this.onArgChange}
-                >
-                {this.state.args.map((arg, index) => {
-                    return  <RemovableTab onClose={() => { this.removeArg(arg) }} showIcon={this.state.args.length>1} key={index} name={index}  label={`Argument ${index+1}`}></RemovableTab>
-                })} 
-                <Tooltip placement="right"  enterDelay={350} title="Add an argument">
-                  <IconButton onClick={this.addArgument} aria-label="New tab">
-                <AddIcon />
-              </IconButton>
-                </Tooltip>
-              
-                </Tabs>
+        return (<div>
 
-               
-              
-                
 
-                <SendMessageForm
-                    message={message}
-                    type={type}
-                    useCallback={this.state.useCallback}
-                    error={error}
-                    // timeout={this.state.timeout}
-                    // onAddArgument={this.addArgument}
-                    onSubmit={() => { this.onSubmit(activeArg) }}
-                    onMessageChange={(message) => { this.onMessageChange(activeArg, message) }}
-                    onTypeChange={(type) => { this.onTypeChange(activeArg, type) }}
-                    onEventChange={this.onEventChange}
-                    onTimeoutChange={this.onTimeoutChange}
-                    handleCheck={this.handleCheck}
-                    eventName={this.state.eventName}
-                    connected={this.props.connected}></SendMessageForm>
 
-            </div>
+            {this.props.multipleArguments && this.renderMultiArgument() }
+
+            <SendMessageForm
+                message={message}
+                type={type}
+                useCallback={this.state.useCallback}
+                error={error}
+                eventNameOption={isSocketIO}
+                callbackOption = {isSocketIO}
+                // timeout={this.state.timeout}
+                // onAddArgument={this.addArgument}
+                onSubmit={() => { this.onSubmit(activeArg) }}
+                onMessageChange={(message) => { this.onMessageChange(activeArg, message) }}
+                onTypeChange={(type) => { this.onTypeChange(activeArg, type) }}
+                onEventChange={this.onEventChange}
+                onTimeoutChange={this.onTimeoutChange}
+                handleCheck={this.handleCheck}
+                eventName={this.state.eventName}
+                connected={this.props.connected}></SendMessageForm>
+
+        </div>
 
 
 
         )
     }
 }
+
+
+
+
+
+
+

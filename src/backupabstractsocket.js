@@ -28,13 +28,11 @@ import AddEvent from './AddEvent'
 import SendMessage from './MessageSending/SendMessage'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 import { blue, green, grey } from '@material-ui/core/colors';
-// import io from 'socket.io-client';
+import io from 'socket.io-client';
 import store from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
 import AbstractSocket from './websocket/AbstractSocket';
-import EventsDecorator from './websocket/EventsDecorator';
 import SocketIO from './websocket/SocketIO';
-import NativeSocket from './websocket/NativeSocket';
 // import { Button } from '@material-ui/core';
 
 const theme = createMuiTheme({
@@ -133,7 +131,6 @@ export default observer(
         socket: null,
         configString: "",
         messages: [],
-        connectionType: 'SocketIO',
         // messages: fakeMessages,
         registeredEvents: {},
         anonymousEvents: {},
@@ -166,6 +163,45 @@ export default observer(
 
     }
 
+    // connectToWS = (address) => {
+
+    //   console.log('connecting');
+
+
+    //   const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
+
+    //   const { instances, instance } = this.getInstanceSlice(instanceId);
+
+    //   instance.connectionStatus = 'connecting';
+
+    //   // const parsedConfig = this.createConfigObjectFromString(configString);
+
+    //   this.setState(() => ({ instances }));
+
+    //   if (instance.socket) {
+    //     instance.socket.close();
+    //   }
+
+    //   const socket = new WebSocket(address);
+
+    //   socket.addEventListener('open', () => {
+    //     // console.log('yyoyoyoyoy connection!')
+    //     const { instances, instance } = this.getInstanceSlice(instanceId);
+
+    //     console.log('connected!')
+
+    //     instance.connectionStatus = 'connected';
+    //     instance.address = address;
+
+    //     this.setState(() => ({ instances }));
+    //   })
+
+    //   socket.onmessage = (data) => {
+    //     console.log('data', data)
+    //   }
+
+
+    // }
 
 
     connect = (address, configString) => {//Fired after a certain instance(tab) wants to create the initial connection
@@ -188,26 +224,13 @@ export default observer(
       if (instance.socket) {
         instance.socket.disconnect();
       }
+     
+      const socket = instance.socket = new AbstractSocket(new SocketIO());   
 
-      // debugger;
-
-      if (instance.connectionType === 'native') {
-        var socket = instance.socket = new AbstractSocket(new NativeSocket());
-      } else {
-        var socket = instance.socket = new AbstractSocket(new EventsDecorator(new SocketIO()));
-      }
-
-
-      // debugger;
       parsedConfig ? socket.connect(address, parsedConfig) : socket.connect(address);
-
+      
 
       socket.on('connect', () => {
-
-        socket.on('message', (data) => {
-          // debugger;
-          this.addMessageToState(instanceId, 'message', [data], false)
-        })
 
         const { instances, instance } = this.getInstanceSlice(instanceId);
 
@@ -222,9 +245,8 @@ export default observer(
 
 
       socket.on('disconnect', (reason) => {
-        // debugger;
         console.log('reason', reason)
-        if (reason === 1008) {
+        if (reason === 'io server disconnect') {
           createAlertAction('error', 'Disconnected from the server');
 
           const instanceId = this.getInstanceBySocketId(socket.id).id;
@@ -237,25 +259,10 @@ export default observer(
       });
 
 
-      socket.on('connecting', (error) => {
+      socket.on('connect_error', (error) => {
         // console.log('Error connecting!', state)
 
-        const { instances, instance } = this.getInstanceSlice(instanceId);
-
-        instance.connectionStatus = "connecting";
-        console.log('connecting');
-
-        // store.alertOpen = false;
-
-        this.setState(() => ({ instances }));
-
-      });
-
-
-
-      socket.on('error', (error) => {
-
-        createAlertAction('error', error);
+        createAlertAction('error', 'Error connecting to the server');
 
       });
 
@@ -276,7 +283,6 @@ export default observer(
 
       socket.on('reconnecting', (attemptNumber) => {
         console.log('reconnecting');
-        // debugger;
 
         const { instances, instance } = this.getInstanceSlice(instanceId);
 
@@ -289,18 +295,6 @@ export default observer(
       this.repeatEventRegistration(instance);//In case the user manually disconnected and reconnected, the events need to be re-registered.
 
 
-    }
-
-
-    onConnectionTypeChange = (connectionType) => {
-      console.log('type', connectionType)
-      const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
-
-      const { instances, instance } = this.getInstanceSlice(instanceId);
-
-      instance.connectionType = connectionType;
-
-      this.setState(() => ({ instances }));
     }
 
 
@@ -402,18 +396,17 @@ export default observer(
 
       const { instance } = this.getInstanceSlice(instanceId);
 
-      const socket = instance.socket;
-
+      const socket = instance.socket;      
+      
 
       // const that = this;
 
       if (on) {
-        debugger;
 
-        socket.listenToAllEvents(true, (eventName) => {//Passing a callback to be executed every time an anonymous event occurs.
-          this.registerAnonymousEvent(instanceId, eventName)//Registers the event
+        socket.listenToAllEvents(true,(eventName)=>{//Passing a callback to be executed every time an anonymous event occurs.
+          this.registerAnonymousEvent(instanceId,eventName)//Registers the event
         })
-
+        
       } else {
         // debugger;
         // socket.onevent = instance.originalOnevent;
@@ -481,8 +474,6 @@ export default observer(
 
 
 
-
-
     onConnectSubmit = (address, config) => {
       this.connect(address, config);
     }
@@ -506,7 +497,7 @@ export default observer(
 
       console.log('disconnected manually')
       // debugger;
-      // debugger;
+
       socket.disconnect();
 
       instance.connectionStatus = 'disconnected';
@@ -520,7 +511,6 @@ export default observer(
 
       const { instance } = this.getInstanceSlice(instanceId);
 
-
       const socket = instance.socket;
 
       const messageId = this.addMessageToState(instanceId, eventName, args, true, useCallback && 'pending');
@@ -529,8 +519,6 @@ export default observer(
 
       this.sendMessageToServer(socket, eventName, args, callback);
     }
-
-    
 
 
 
@@ -573,12 +561,11 @@ export default observer(
 
 
     sendMessageToServer = (socket, eventName, args, callback) => {//Emits the event.
-      
       if (callback) {
-        socket.send({eventName,args:[...args,callback]});//"data" can be multiple arguments.
+        socket.emit(eventName, ...args, callback);//"data" can be multiple arguments.
       } else {
         // debugger;
-        socket.send({eventName, args:[...args]});//"data" can be multiple arguments.
+        socket.emit(eventName, ...args);//"data" can be multiple arguments.
       }
 
 
@@ -808,14 +795,12 @@ export default observer(
     }
 
 
-
-
     render() {
 
       const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)//Get the currently active instance.
 
       // const { connectionStatus, allEventsChecked, registeredEvents, messages, address, configString } = instance;//Extract the props.
-      const { connectionStatus, allEventsChecked, connectionType, registeredEvents, address, configString } = instance;//Extract the props.
+      const { connectionStatus, allEventsChecked, registeredEvents, address, configString } = instance;//Extract the props.
 
       // console.log('length from app render', messages.length)
       const activeInstanceId = instance.id;
@@ -852,12 +837,10 @@ export default observer(
             </AppBar>
 
             <Header
-              onConnectionTypeChange={this.onConnectionTypeChange}
               onAddressChange={(val) => { this.onHeaderValueChange('address', val) }}
               onConfigStringChange={(val) => { this.onHeaderValueChange('configString', val) }}
               key={activeInstanceId}
               address={address}
-              connectionType={connectionType}
               configString={configString}
               connectionStatus={connectionStatus}
               onDisconnectSubmit={this.onDisconnectSubmit}
@@ -875,21 +858,11 @@ export default observer(
                 <div id="send_messages">
                   <Typography gutterBottom variant="h6">Send messages</Typography>
 
-                  <SendMessage
-                    multipleArguments={connectionType === 'SocketIO'}
-                    showEventName={connectionType === 'SocketIO'}
-                    connected={connectionStatus === 'connected'}
-                    onSubmit={
-                      (eventName, args, useCallback) => {
-                        instance.connectionType === 'SocketIO' ?
-                          this.onMessageSubmit(eventName, args, useCallback) :
-                          this.onMessageSubmit('message',[args[0]])
-                      }
-                    }>
-                  </SendMessage>
+                  <SendMessage connected={connectionStatus === 'connected'} onSubmit={this.onMessageSubmit}></SendMessage>
 
                 </div>
-                {connectionType === 'SocketIO' && <div id="events">
+
+                <div id="events">
                   <Typography gutterBottom variant="h6">Register events</Typography>
 
                   <FormControlLabel
@@ -914,8 +887,7 @@ export default observer(
                     </div>
 
                   )}
-                </div>}
-
+                </div>
               </div>
 
 
