@@ -31,8 +31,8 @@ import { blue, green, grey } from '@material-ui/core/colors';
 // import io from 'socket.io-client';
 import store from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
-import AbstractSocket from './websocket/AbstractSocket';
-import EventsDecorator from './websocket/EventsDecorator';
+// import AbstractSocket from './websocket/AbstractSocket';
+// import EventsDecorator from './websocket/EventsDecorator';
 import SocketIO from './websocket/SocketIO';
 import NativeSocket from './websocket/NativeSocket';
 // import { Button } from '@material-ui/core';
@@ -128,11 +128,21 @@ export default observer(
     generateInstance = () => {//Initial structure of an instance.
 
       const instance = {
-        address: "http://localhost:3001",
+        address: "ws://localhost:3003",
         id: uuid(),
         socket: null,
         configString: "",
         messages: [],
+        args: [
+          {
+            message: "",
+            error: false,
+            type: 'String'
+          }
+        ],
+        useCallback: false,
+        activeArg: 0,
+        eventName: 'yoyo',
         connectionType: 'SocketIO',
         // messages: fakeMessages,
         registeredEvents: {},
@@ -169,8 +179,7 @@ export default observer(
 
 
     connect = (address, configString) => {//Fired after a certain instance(tab) wants to create the initial connection
-      // if(address.includes('ws:') || address.includes('wss:'))
-      //   return this.connectToWS(address);
+
 
       console.log('connecting');
 
@@ -183,7 +192,7 @@ export default observer(
 
       const parsedConfig = this.createConfigObjectFromString(configString);
 
-      this.setState(() => ({ instances }));
+
 
       if (instance.socket) {
         instance.socket.disconnect();
@@ -192,10 +201,15 @@ export default observer(
       // debugger;
 
       if (instance.connectionType === 'native') {
-        var socket = instance.socket = new AbstractSocket(new NativeSocket());
+        // debugger;
+        var socket = instance.socket = new NativeSocket();
       } else {
-        var socket = instance.socket = new AbstractSocket(new EventsDecorator(new SocketIO()));
+
+        var socket = instance.socket = new SocketIO();
       }
+
+      // debugger;
+      this.setState(() => ({ instances }));
 
 
       // debugger;
@@ -290,6 +304,36 @@ export default observer(
 
 
     }
+
+    onConnectSubmit = (address, config, connectionType) => {
+      // debugger;
+      if (!this.validateAddress(address, connectionType))
+        return createAlertAction('error', 'Invalid address')
+
+      this.connect(address, config);
+    }
+
+    validateAddress = (address, connectionType) => {
+      // debugger;
+      if (connectionType === 'native') {
+        if (!address.startsWith('ws:') && !address.startsWith('wss:'))
+          return false;
+
+        return true;
+      }
+      return true;
+    }
+
+
+
+    onDisconnectSubmit = () => {
+
+      const instanceId = this.state.activeInstance;
+
+      this.disconnectManually(instanceId);
+    }
+
+
 
 
     onConnectionTypeChange = (connectionType) => {
@@ -483,19 +527,6 @@ export default observer(
 
 
 
-    onConnectSubmit = (address, config) => {
-      this.connect(address, config);
-    }
-
-
-
-    onDisconnectSubmit = () => {
-
-      const instanceId = this.state.activeInstance;
-
-      this.disconnectManually(instanceId);
-    }
-
 
 
     disconnectManually = (instanceId) => {
@@ -530,7 +561,19 @@ export default observer(
       this.sendMessageToServer(socket, eventName, args, callback);
     }
 
-    
+
+    onMessageComponentPropChange = (newStateObj) => {
+      const instanceId = this.state.activeInstance;
+
+      const { instance, instances } = this.getInstanceSlice(instanceId);
+
+      for (let prop in newStateObj) {
+        instance[prop] = newStateObj[prop];
+      }
+      this.setState(() => ({ instances }))
+    }
+
+
 
 
 
@@ -573,12 +616,12 @@ export default observer(
 
 
     sendMessageToServer = (socket, eventName, args, callback) => {//Emits the event.
-      
+
       if (callback) {
-        socket.send({eventName,args:[...args,callback]});//"data" can be multiple arguments.
+        socket.send({ eventName, args: [...args, callback] });//"data" can be multiple arguments.
       } else {
         // debugger;
-        socket.send({eventName, args:[...args]});//"data" can be multiple arguments.
+        socket.send({ eventName, args: [...args] });//"data" can be multiple arguments.
       }
 
 
@@ -815,7 +858,7 @@ export default observer(
       const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)//Get the currently active instance.
 
       // const { connectionStatus, allEventsChecked, registeredEvents, messages, address, configString } = instance;//Extract the props.
-      const { connectionStatus, allEventsChecked, connectionType, registeredEvents, address, configString } = instance;//Extract the props.
+      const { connectionStatus, allEventsChecked, connectionType, eventName, args, activeArg, useCallback, registeredEvents, address, configString } = instance;//Extract the props.
 
       // console.log('length from app render', messages.length)
       const activeInstanceId = instance.id;
@@ -861,7 +904,7 @@ export default observer(
               configString={configString}
               connectionStatus={connectionStatus}
               onDisconnectSubmit={this.onDisconnectSubmit}
-              onConnectSubmit={() => { this.onConnectSubmit(address, configString) }}//"address" and "configString" are declared in the top of render.
+              onConnectSubmit={() => { this.onConnectSubmit(address, configString, connectionType) }}//"address" and "configString" are declared in the top of render.
             >
             </Header>
 
@@ -876,14 +919,24 @@ export default observer(
                   <Typography gutterBottom variant="h6">Send messages</Typography>
 
                   <SendMessage
+                    eventName={eventName}
+                    activeArg={activeArg}
+                    args={args}
+                    useCallback={useCallback}
                     multipleArguments={connectionType === 'SocketIO'}
+                    onPropChange={this.onMessageComponentPropChange}
                     showEventName={connectionType === 'SocketIO'}
                     connected={connectionStatus === 'connected'}
+                    formats={connectionType === 'native' && [
+                      'String',
+                      'File',
+                      'JSON'
+                    ]}
                     onSubmit={
                       (eventName, args, useCallback) => {
                         instance.connectionType === 'SocketIO' ?
                           this.onMessageSubmit(eventName, args, useCallback) :
-                          this.onMessageSubmit('message',[args[0]])
+                          this.onMessageSubmit('message', [args[0]])
                       }
                     }>
                   </SendMessage>

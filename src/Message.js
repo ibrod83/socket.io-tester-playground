@@ -19,10 +19,15 @@ class Message extends React.Component {
         // debugger;
         switch (typeof message) {
             case 'string':
-                if (this.IsJsonString(message)) {
-                    return 'JSON';
+                // debugger;
+                if (parseInt(message)) {
+                    return 'String';
                 }
+                if (this.IsJsonString(message))
+                    return 'JSON';
+
                 return 'String'
+
             case 'object':
                 if (Array.isArray(message)) {
                     return 'Array';

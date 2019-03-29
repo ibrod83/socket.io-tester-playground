@@ -11,24 +11,26 @@ import AddIcon from '@material-ui/icons/Add';
 
 export default class SendMessage extends React.Component {
 
-    state = {
-        eventName: "yoyo",
-        activeArg: 0,
-        // timeout:5000,
-        useCallback: false,
-        args: [
-            {
-                message: "",
-                type: 'String',
-                error: false
-            },
-            // {
-            //     message: "second message",
-            //     type: 'String',
-            //     error: false
-            // }
-        ]
-    }
+    // state = {
+    //     eventName: "yoyo",
+    //     activeArg: 0,
+    //     // timeout:5000,
+    //     useCallback: false,
+    //     args: [
+    //         {
+    //             message: "",
+    //             type: 'String',
+    //             error: false
+    //         },
+    //         // {
+    //         //     message: "second message",
+    //         //     type: 'String',
+    //         //     error: false
+    //         // }
+    //     ]
+    // }
+
+    
 
     isObject = (value) => {//Returns the parsed object on success, false on failure.
         // debugger;
@@ -62,7 +64,7 @@ export default class SendMessage extends React.Component {
 
     onMessageChange = (arg, message) => {
         // debugger;
-        const args = [...this.state.args];
+        const args = [...this.props.args];
 
         const index = args.indexOf(arg);
 
@@ -86,20 +88,19 @@ export default class SendMessage extends React.Component {
                 error = true;
             }
         }
-        this.setState((state) => {
-            // const args = [...state.args];
-            // const index = args.indexOf(arg);
-            args[index].message = message;
-            args[index].error = error;
-            return { args }
-        })
+        args[index].message = message;
+        args[index].error = error;
+
+        // this.props.onArgsChange = (args);
+        this.props.onPropChange({args})
+        
     }
 
     onEventChange = (eventName) => {
 
 
-
-        this.setState({ eventName })
+        this.props.onPropChange ({eventName})
+        // this.setState({ eventName })
     }
 
 
@@ -126,66 +127,81 @@ export default class SendMessage extends React.Component {
         // debugger;
         let parsedArgs = [];
 
-        const args = [...this.state.args];
+        const args = [...this.props.args];
         for (let arg of args) {
             const parsed = this.parseArg(arg);//Parse the message(with mutation, no new array).
             parsedArgs.push(parsed);//Push the parsed property.
         }
 
-        this.props.onSubmit(this.state.eventName, parsedArgs, this.state.useCallback);
+        
+
+        this.props.onSubmit(this.props.eventName, parsedArgs, this.props.useCallback);
     }
 
 
     onArgChange = (e, value) => {
         // debugger;
         const arg = value;
-        this.setState({ activeArg: arg })
+        this.props.onPropChange({activeArg:arg})
+        // this.setState({ activeArg: arg })
     }
 
     removeArg = (arg) => {
         // debugger;
-        const args = [...this.state.args];
+        const args = [...this.props.args];
         const index = args.indexOf(arg);
 
         args.splice(index, 1);
-        this.setState(() => ({
-            args,
-            activeArg: args.length - 1
-        }))
+        // this.setState(() => ({
+        //     args,
+        //     activeArg: args.length - 1
+        // }))
+
+        this.props.onPropChange({args,activeArg:args.length - 1})
 
     }
 
     addArgument = () => {
 
-        this.setState((state) => {
-            const args = [...state.args];
-            // debugger;
-            const initialLength = args.length;
+        const args = [...this.props.args];
+
+        const initialLength = args.length;
             args.push({
                 message: "",
                 type: 'String',
                 error: false
             })
+        this.props.onPropChange({args,activeArg:initialLength});    
+        // this.setState((state) => {
+        //     const args = [...state.args];
+        //     // debugger;
+        //     const initialLength = args.length;
+        //     args.push({
+        //         message: "",
+        //         type: 'String',
+        //         error: false
+        //     })
 
-            return {
-                args,
-                activeArg: initialLength
-            }
-        })
+        //     return {
+        //         args,
+        //         activeArg: initialLength
+        //     }
+        // })
     }
 
     onTypeChange = (arg, type) => {
-        const args = [...this.state.args];
+        const args = [...this.props.args];
 
         const index = args.indexOf(arg);
         args[index].type = type
         args[index].message = ""
         args[index].error = false;
-        this.setState((state) => {
-            return {
-                args
-            }
-        })
+        this.props.onPropChange({args})
+        // this.setState((state) => {
+        //     return {
+        //         args
+        //     }
+        // })
     }
 
     // onTimeoutChange = (val)=>{
@@ -193,7 +209,8 @@ export default class SendMessage extends React.Component {
     // }
 
     handleCheck = (checked) => {
-        this.setState({ useCallback: checked });
+        this.props.onPropChange({useCallback:checked})
+        // this.setState({ useCallback: checked });
     }
 
     // renderSingleTab = () => {
@@ -203,13 +220,13 @@ export default class SendMessage extends React.Component {
     renderMultiArgument = () => {
 
         return <Tabs
-            value={this.state.activeArg}
+            value={this.props.activeArg}
             indicatorColor="primary"
             textColor="primary"
             onChange={this.onArgChange}
         >
-            {this.state.args.map((arg, index) => {
-                return <RemovableTab onClose={() => { this.removeArg(arg) }} showIcon={this.state.args.length > 1} key={index} name={index} label={`Argument ${index + 1}`}></RemovableTab>
+            {this.props.args.map((arg, index) => {
+                return <RemovableTab onClose={() => { this.removeArg(arg) }} showIcon={this.props.args.length > 1} key={index} name={index} label={`Argument ${index + 1}`}></RemovableTab>
             })}
             <Tooltip placement="right" enterDelay={350} title="Add an argument">
                 <IconButton onClick={this.addArgument} aria-label="New tab">
@@ -226,7 +243,8 @@ export default class SendMessage extends React.Component {
     // }
 
     render() {
-        const activeArg = this.state.args[this.state.activeArg]
+        const activeArg = this.props.args[this.props.activeArg]
+        // debugger;
         const { message, error, type } = activeArg;
         const isSocketIO = this.props.multipleArguments;
         // debugger
@@ -239,8 +257,9 @@ export default class SendMessage extends React.Component {
             <SendMessageForm
                 message={message}
                 type={type}
-                useCallback={this.state.useCallback}
+                useCallback={this.props.useCallback}
                 error={error}
+                formats={this.props.formats}
                 eventNameOption={isSocketIO}
                 callbackOption = {isSocketIO}
                 // timeout={this.state.timeout}
@@ -251,7 +270,7 @@ export default class SendMessage extends React.Component {
                 onEventChange={this.onEventChange}
                 onTimeoutChange={this.onTimeoutChange}
                 handleCheck={this.handleCheck}
-                eventName={this.state.eventName}
+                eventName={this.props.eventName}
                 connected={this.props.connected}></SendMessageForm>
 
         </div>

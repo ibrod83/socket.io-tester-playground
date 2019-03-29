@@ -18,6 +18,7 @@ import FileMessage from './FileMessage';
 import BooleanMessage from './BooleanMessage';
 import ObjectMessage from './ObjectMessage';
 import { Typography } from '@material-ui/core';
+import { formatMs } from '@material-ui/core/styles/transitions';
 
 
 
@@ -37,7 +38,9 @@ const styles = theme => ({
 
 
 class SendMessageForm extends React.Component {
-    
+
+    defaultFormats = ['File', 'String', 'Number', 'JSON', 'Boolean', 'Object'];
+
     onEventChange = (e) => {
 
         const event = e.target.value;
@@ -47,7 +50,7 @@ class SendMessageForm extends React.Component {
     }
 
     onMessageChange = (message) => {
-       
+
         this.props.onMessageChange(message);
     }
 
@@ -55,7 +58,7 @@ class SendMessageForm extends React.Component {
     onSubmit = (e) => {
         // debugger;
         e.preventDefault();
-        
+
         this.props.onSubmit();
     }
 
@@ -72,16 +75,27 @@ class SendMessageForm extends React.Component {
     //     const val = e.target.value;
     //     this.props.onTimeoutChange(val);
     // }
-    addArgument = ()=>this.props.onAddArgument();
+    addArgument = () => this.props.onAddArgument();
 
 
     render() {
 
         const { classes } = this.props;
+        // debugger;
+        if (this.props.formats) {
+
+            var formats= this.props.formats;
+            // debugger;
+        } else {
+            var formats = this.defaultFormats
+        }
+
+
+
 
         return (
             <form className={classes.root} onSubmit={this.onSubmit} autoComplete="off">
-                {this.props.callbackOption && <div style={{display:'inline-flex',width:'100%'}}>
+                {this.props.callbackOption && <div style={{ display: 'inline-flex', width: '100%' }}>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -90,13 +104,13 @@ class SendMessageForm extends React.Component {
                                 value="checkedA"
                                 color="primary"
                             />
-    
+
                         }
                         label="Wait for callback"
                     >
-    
+
                     </FormControlLabel>
-                   {/*<TextField
+                    {/*<TextField
                     style={{maxWidth:'100px',height:'30px'}}
                     // id="outlined-password-input"
                     label="Milliseconds"
@@ -112,16 +126,16 @@ class SendMessageForm extends React.Component {
                     margin="normal"
                     variant="outlined"
                    />*/}
-                <Tooltip enterDelay={350} placement="right" title={<Typography style={{color:'white'}}>
-                Will send a callback function with every message, as the last parameter.
-                If this callback isn't invoked after 5 seconds, the message's status will change to 'fail', allowing you to resend it. 
-                If the callback is called with some data, it will be presented in the message. Make sure your server is set to handle this.
+                    <Tooltip enterDelay={350} placement="right" title={<Typography style={{ color: 'white' }}>
+                        Will send a callback function with every message, as the last parameter.
+                        If this callback isn't invoked after 5 seconds, the message's status will change to 'fail', allowing you to resend it.
+                        If the callback is called with some data, it will be presented in the message. Make sure your server is set to handle this.
                 </Typography>}>
-                   <InfoIcon style={{marginTop:'10px'}} color="default"></InfoIcon>
-                </Tooltip>
-            
+                        <InfoIcon style={{ marginTop: '10px' }} color="default"></InfoIcon>
+                    </Tooltip>
+
                 </div>}
-                
+
                 {this.props.eventNameOption && <TextField
                     // id="outlined-password-input"
                     label="Event name"
@@ -136,7 +150,7 @@ class SendMessageForm extends React.Component {
                     margin="dense"
                     variant="outlined"
                 />}
-                
+
                 <FormControl className={classes.formControl}>
                     <InputLabel htmlFor="age-simple">Format</InputLabel>
                     <Select
@@ -148,12 +162,12 @@ class SendMessageForm extends React.Component {
                         }}
                     >
 
-                        <MenuItem value={'String'}>String</MenuItem>
-                        <MenuItem value={'Number'}>Number</MenuItem>
-                        <MenuItem value={'Object'}>Object</MenuItem>
-                        <MenuItem value={'JSON'}>JSON</MenuItem>
-                        <MenuItem value={'File'}>File</MenuItem>
-                        <MenuItem value={'Boolean'}>Boolean</MenuItem>
+                        {formats.map((format) => {
+                            return <MenuItem value={format}>{format}</MenuItem>
+                        })}
+
+
+
 
                     </Select>
                     <FormHelperText>Select message type</FormHelperText>
@@ -163,8 +177,8 @@ class SendMessageForm extends React.Component {
                 {this.props.type === 'Number' && <NumberMessage onChange={this.onMessageChange} value={this.props.message} />}
                 {this.props.type === 'Object' && <ObjectMessage error={this.props.error} onChange={this.onMessageChange} value={this.props.message} />}
                 {this.props.type === 'JSON' && <ObjectMessage JSON error={this.props.error} onChange={this.onMessageChange} value={this.props.message} />}
-                {this.props.type === 'File' && <FileMessage onChange={this.onMessageChange} value={this.props.message} />}        
-                {this.props.type === 'Boolean' && <BooleanMessage  onChange={this.onMessageChange} value={typeof this.props.message === 'boolean' ? this.props.message: true} />}        
+                {this.props.type === 'File' && <FileMessage onChange={this.onMessageChange} value={this.props.message} />}
+                {this.props.type === 'Boolean' && <BooleanMessage onChange={this.onMessageChange} value={typeof this.props.message === 'boolean' ? this.props.message : true} />}
 
                 <Button disabled={!this.props.connected || this.props.error} type="submit" variant="contained" color="primary" >
                     Send

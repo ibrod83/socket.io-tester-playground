@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 
 class SocketIO {
     socket = null;
-
+    originalOnevent=null;
     nativeSocketIOEvents = ['connect', 'reconnect', 'reconnecting', 'disconnect','error', 'connect_error']//The "native" socketIO events will be handled 
     //differently in the "on" method.
 
@@ -12,7 +12,7 @@ class SocketIO {
     connect(address, config) {
         const socket = io(address, config);
         this.socket = socket;
-
+        this.originalOnevent = socket.onevent;
 
         socket.on('connect', () => {
              this.emit('connect') 
@@ -73,7 +73,7 @@ class SocketIO {
     }
 
     disconnect() {
-        this.socket.disconnect();
+       this.socket && this.socket.disconnect();
     }
 
     on(event, callback) {//This is the "on" function that is exposed to the consumer. It's not the native "on"!
@@ -87,41 +87,38 @@ class SocketIO {
     }
 
 
-    send(eventName,...args) {//Sends a message
+    send({eventName,args}) {//Sends a message
         //  debugger;
         console.log(args)
 
         this.socket.emit(eventName,...args);
     }
 
-    // listenToAllEvents = (instanceId, on) => {//Will make an instance listen to every incoming socketIO message, prompting addition of the message to the
-    //     //instance.messages array.
-  
-    //     const { instance } = this.getInstanceSlice(instanceId);
-  
-    //     const socket = instance.socket;
-  
-  
-    //     // const that = this;
-  
-    //     if (on) {
-    //       debugger;
-  
-    //       socket.listenToAllEvents(true, (eventName) => {//Passing a callback to be executed every time an anonymous event occurs.
-    //         this.registerAnonymousEvent(instanceId, eventName)//Registers the event
-    //       })
-  
-    //     } else {
-    //       // debugger;
-    //       // socket.onevent = instance.originalOnevent;
-  
-    //       socket.listenToAllEvents(false);
-  
-    //       this.unregisterAnonymousEvents(instanceId)
-  
-    //     }
-  
-    //   }
+    listenToAllEvents = (on, callback) => {//Will make an instance listen to every incoming socketIO message, prompting addition of the message to the
+        // debugger;
+        const that = this;
+
+        if (on) {
+
+            this.socket.onevent = function (packet) {//This intercepts the original onevent function, which gets fired on every incoming event.
+                const eventName = packet.data[0];//Extracts the event name.  
+
+                callback(eventName)//Registers the event
+
+                that.originalOnevent.call(this, packet);//Calls the original onevent function, for normal application flow. The reference was created after
+                //socket initialization.
+
+            };
+
+        } else {
+            // debugger;
+            this.socket.onevent = this.originalOnevent;
+
+            //   that.unregisterAnonymousEvents(instanceId)
+
+        }
+
+    }
 
 
 }

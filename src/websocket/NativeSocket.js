@@ -65,9 +65,9 @@ class NativeSocket {
  
 
     disconnect() {
-
+        // debugger;
         this.shouldReconnect = false;
-        this.socket.close();
+        this.socket && this.socket.close();
 
     }
 
@@ -88,7 +88,7 @@ class NativeSocket {
 
 
     send({args}) {
-         debugger;
+        //  debugger;
         console.log(args)
 
         this.socket.send(args[0]);
