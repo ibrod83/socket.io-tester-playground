@@ -128,7 +128,7 @@ export default observer(
     generateInstance = () => {//Initial structure of an instance.
 
       const instance = {
-        address: "ws://localhost:3003",
+        address: "ws://localhost:3001/multiple",
         id: uuid(),
         socket: null,
         configString: "",
