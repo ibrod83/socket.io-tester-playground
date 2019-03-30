@@ -318,7 +318,7 @@ class Header extends React.Component {
                             onClose={this.handleModalClose}
                         >
                             <div style={{ top: '50%', left: '50%', transform: `translate(-${50}%, -${50}%)` }} className={classes.paper}>
-                                <Typography variant="h5">Provide a configuration object to SocketIO. The string will be evaluated into a JS object</Typography>
+                                <Typography variant="h5">Provide a configuration object to the socket. The string will be evaluated into a JS object</Typography>
                                 <ObjectMessage value={configString} error={this.state.configError} onChange={this.onConfigStringChange}></ObjectMessage>
                                 <Button onClick={this.handleModalClose} color="primary">Confirm</Button>
                             </div>

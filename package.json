@@ -1,6 +1,7 @@
 {
   "name": "electron-chat",
   "version": "0.1.0",
+  "homepage": "./",
   "main": "main.js",
   "private": true,
   "dependencies": {

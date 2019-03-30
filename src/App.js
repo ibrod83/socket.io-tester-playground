@@ -128,7 +128,7 @@ export default observer(
     generateInstance = () => {//Initial structure of an instance.
 
       const instance = {
-        address: "ws://localhost:3001/multiple",
+        address: "ws://localhost:3003",
         id: uuid(),
         socket: null,
         configString: "",
@@ -143,7 +143,7 @@ export default observer(
         useCallback: false,
         activeArg: 0,
         eventName: 'yoyo',
-        connectionType: 'SocketIO',
+        connectionType: 'native',
         // messages: fakeMessages,
         registeredEvents: {},
         anonymousEvents: {},
