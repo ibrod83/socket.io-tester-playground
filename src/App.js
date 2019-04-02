@@ -1,41 +1,29 @@
 import React, { Component } from 'react';
-// import Grid from '@material-ui/core/Grid';
 import Alert from './Alert';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-// import DeleteSweepIcon from '@material-ui/icons/DeleteSweep';
-// import Tooltip from '@material-ui/core/Tooltip';
 import { observer } from 'mobx-react';
 import Tabs from '@material-ui/core/Tabs';
-// import Tab from '@material-ui/core/Tab';
 import AppBar from '@material-ui/core/AppBar';
-// import { withStyles } from '@material-ui/core/styles';
-// import Fab from '@material-ui/core/Fab';
 import RemovableTab from './Utilities/RemovableTab';
 import AddIcon from '@material-ui/icons/Add';
-// import ClearIcon from '@material-ui/icons/Clear';
-// import { runInAction } from 'mobx';
 import Messages from './Messages';
 import RegisteredEvents from './RegisteredEvents';
 import uuid from 'uuid';
 import './App.scss';
-// import Instance from './Instance';
 import moment from 'moment';
 import Header from './Header';
 import AddEvent from './AddEvent'
 import SendMessage from './MessageSending/SendMessage'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 import { blue, green, grey } from '@material-ui/core/colors';
-// import io from 'socket.io-client';
 import store from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
-// import AbstractSocket from './websocket/AbstractSocket';
-// import EventsDecorator from './websocket/EventsDecorator';
 import SocketIO from './websocket/SocketIO';
 import NativeSocket from './websocket/NativeSocket';
-// import { Button } from '@material-ui/core';
+
 
 const theme = createMuiTheme({
   palette: {
@@ -54,52 +42,17 @@ export default observer(
 
       super(props);
 
-      const instance0 = this.generateInstance();
-      // const instance1 = this.generateInstance();
+      const instance0 = this.generateInstance();//Create the main instance(tab)
       this.state = {
-        instances: [instance0],//Each instance has its own socket messages and events. Represented by a tab.
+        instances: [instance0],//Each instance has its own socket, messages and events. Represented by a tab.
         activeInstance: instance0.id//The instance represented by the active tab.
       }
-    }
-
-    // componentDidMount() {
-    //   this.createMockMessages(100);
-    // }
-
-    createMockMessages = (num) => {
-
-      // for (let ins of this.state.instances) {
-      const messages = []
-      for (let i = 0; i < num; i++) {
-        messages.push({
-          id: uuid(),
-          owner: true,
-          time: this.getTime(),
-          eventName: this.state.activeInstance,
-          args: [i + 1]
-
-        })
-      }
-      // debugger;
-      const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
-      instance.messages = messages;
-      this.setState(() => ({ instances }))
-      // }
-
-    }
-
-    // getMessagesSlice = window.getMessagesSlice = (begin, end) => {
-    //   const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
-    //   const messages = instance.messages.slice(begin, end);
-    //   // console.log(messages)
-    //   return messages;
-    // }
+    }  
 
 
 
 
     getActiveInstance = () => {
-      // debugger;
       console.log(this.state)
       return this.state.instances.filter(instance => instance.id === this.state.activeInstance)[0]
     }
@@ -128,33 +81,32 @@ export default observer(
     generateInstance = () => {//Initial structure of an instance.
 
       const instance = {
-        address: "ws://localhost:3003",
-        id: uuid(),
+        address: "ws://localhost:3001",
+        id: uuid(),//The unique identifier of the instance.
         socket: null,
         configString: "",
-        messages: [],
-        args: [
+        messages: [],//All messages sent/received in this instance.
+        args: [//The arguments that will be sent with the message(initial single argument of type string).
           {
             message: "",
             error: false,
             type: 'String'
           }
         ],
-        useCallback: false,
-        activeArg: 0,
-        eventName: 'yoyo',
-        connectionType: 'native',
-        // messages: fakeMessages,
+        useCallback: false,//Whether or not a "callback" should be used(relevant only for SocketIO).
+        activeArg: 0,//The active argument.
+        eventName: '',
+        connectionType: 'SocketIO',//Either "SocketIO" or "native".
         registeredEvents: {},
-        anonymousEvents: {},
+        anonymousEvents: {},//Anonymous(those that the user didn't register) events are used for intercepting all incoming events, in SocketIO
         allEventsChecked: false,
-        connectionStatus: "disconnected"
+        connectionStatus: "disconnected"//Disconnected, connected, reconnecting,reconnect,
       }
 
       return instance;
     }
 
-    createConfigObjectFromString = (str) => {
+    createConfigObjectFromString = (str) => {//Evaluates the optional configuration string as JS.
       if (!str)
         return;
 
@@ -873,6 +825,7 @@ export default observer(
       return (
 
         <MuiThemeProvider theme={theme}>
+        
           <div id="wrapper">
             <AppBar color="default" position="static">
               <Tabs indicatorColor="primary" textColor="primary" value={tabIndex} onChange={this.handleChange}>
@@ -1003,3 +956,21 @@ export default observer(
 
 
 
+// createMockMessages = (num) => {
+
+//   const messages = []
+//   for (let i = 0; i < num; i++) {
+//     messages.push({
+//       id: uuid(),
+//       owner: true,
+//       time: this.getTime(),
+//       eventName: this.state.activeInstance,
+//       args: [i + 1]
+
+//     })
+//   }
+//   const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
+//   instance.messages = messages;
+//   this.setState(() => ({ instances }))
+
+// }

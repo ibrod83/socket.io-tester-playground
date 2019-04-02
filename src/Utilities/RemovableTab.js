@@ -7,8 +7,10 @@ import ClearIcon from '@material-ui/icons/Clear';
 const StyledTab = withStyles({
     root: {
         textTransform: 'initial',
-        minHeight: '50px'
+        minHeight: '50px',
+        minWidth:'0px'
     },
+
 })(Tab);
 
 const StyledClearIcon = withStyles({
@@ -25,24 +27,22 @@ const StyledClearIcon = withStyles({
 
 const RemovableTab = (props) => {
 
-    const onClose = (e)=>{
+    const onClose = (e) => {
         e.stopPropagation();
         props.onClose()
     }
 
-    const onClick = (e)=>{
+    const onClick = (e) => {
         // e.stopPropagation();
         props.click && props.click();
     }
 
     return (
         <StyledTab
-            // variant={props.color}
             {...props}
-            // style={{ textTransform: 'initial' }}
             onClick={onClick}
             label={props.label}
-            icon={props.showIcon && <StyledClearIcon onClick={onClose }></StyledClearIcon> }
+            icon={props.showIcon && <StyledClearIcon onClick={onClose}></StyledClearIcon>}
         >
 
         </StyledTab>

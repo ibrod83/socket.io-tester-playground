@@ -1,19 +1,41 @@
+'use strict';
+
+const electron = require('electron');
+
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
+const {app,globalShortcut, BrowserWindow,} = electron;
+// require('electron-reload')(__dirname);
+// const remote = require('remote')
 const url = require('url');
 const path = require('path');
 const os = require('os')
 
+// console.log(module)
+try {
+  require('electron-reloader')(module);
+} catch (err) {
+  console.log(err)
+}
 
+const Menu = electron.Menu
+const MenuItem = electron.MenuItem
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
+// Keep a global reference of thedsd window object, if you don't, the window will
+// be closed automaticallfdfyddsddasdasdds when the JavaScript object is garbage collected.
 let mainWindow
 
 function createWindow () {
+  globalShortcut.register('f5', function() {
+		console.log('f5 is pressed')
+		mainWindow.reload()
+	})
+	globalShortcut.register('CommandOrControl+R', function() {
+		console.log('CommandOrControl+R is pressed')
+		mainWindow.reload()
+	})
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 800,
+    width: 1000,
     height: 600,
     webPreferences: {
       nodeIntegration: true
@@ -50,6 +72,29 @@ app.on('ready', ()=>{
     path.join(os.homedir(), '/AppData/Local/Google/Chrome/User Data/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi/3.6.0_0')
  )
   createWindow();
+  const ctxMenu = new Menu();
+  ctxMenu.append(new MenuItem({
+    label:'Paste',
+    role:'paste',
+   
+  }))
+
+  ctxMenu.append(new MenuItem({
+    label:'Copy',
+    role:'copy',
+   
+  }))
+
+  ctxMenu.append(new MenuItem({
+    label:'Cut',
+    role:'cut',
+   
+  }))
+
+  mainWindow.webContents.on('context-menu',(e,params)=>{
+    // console.log(e)
+    ctxMenu.popup(mainWindow,params.x,params.y)
+  })
   
 })
 
