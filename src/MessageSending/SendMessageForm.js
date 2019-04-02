@@ -140,6 +140,7 @@ class SendMessageForm extends React.Component {
                     // id="outlined-password-input"
                     label="Event name"
                     required
+                    // autoComplete={"on"}
                     // className={classes.textField}
                     onChange={this.onEventChange} value={this.props.eventName}
                     type="text"

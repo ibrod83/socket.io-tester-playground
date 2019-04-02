@@ -4,13 +4,10 @@ const electron = require('electron');
 
 // Modules to control application life and create native browser window
 const {app,globalShortcut, BrowserWindow,} = electron;
-// require('electron-reload')(__dirname);
-// const remote = require('remote')
-const url = require('url');
+
 const path = require('path');
 const os = require('os')
 
-// console.log(module)
 try {
   require('electron-reloader')(module);
 } catch (err) {
@@ -21,18 +18,18 @@ const Menu = electron.Menu
 const MenuItem = electron.MenuItem
 
 // Keep a global reference of thedsd window object, if you don't, the window will
-// be closed automaticallfdfyddsddasdasdds when the JavaScript object is garbage collected.
+// be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
 
 function createWindow () {
-  globalShortcut.register('f5', function() {
-		console.log('f5 is pressed')
-		mainWindow.reload()
-	})
-	globalShortcut.register('CommandOrControl+R', function() {
-		console.log('CommandOrControl+R is pressed')
-		mainWindow.reload()
-	})
+  // globalShortcut.register('f5', function() {
+	// 	console.log('f5 is pressed')
+	// 	mainWindow.reload()
+	// })
+	// globalShortcut.register('CommandOrControl+R', function() {
+	// 	console.log('CommandOrControl+R is pressed')
+	// 	mainWindow.reload()
+	// })
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1000,
