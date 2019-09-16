@@ -81,7 +81,7 @@ export default observer(
     generateInstance = () => {//Initial structure of an instance.
 
       const instance = {
-        address: "ws://localhost:3001",
+        address: "https://socketio-test-tool-backend.herokuapp.com/",
         id: uuid(),//The unique identifier of the instance.
         socket: null,
         configString: "",
