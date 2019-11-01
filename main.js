@@ -1,7 +1,7 @@
 'use strict';
 
 const electron = require('electron');
-
+const url =  require('url');
 // Modules to control application life and create native browser window
 const {app,globalShortcut, BrowserWindow,} = electron;
 
@@ -38,16 +38,22 @@ function createWindow () {
       nodeIntegration: true
     }
   })
-
+//   console.log(process.env.ELECTRON_START_URL)
   const startUrl = process.env.ELECTRON_START_URL || url.format({
     pathname: path.join(__dirname, './build/index.html'),
     protocol: 'file:',
     slashes: true
 });
+
+//   const startUrl = url.format({
+//     pathname: path.join(__dirname, './build/index.html'),
+//     protocol: 'file:',
+//     slashes: true
+// });
 mainWindow.loadURL(startUrl);
 
   // and load the index.html of the app.
-//   mainWindow.loadURL('http://localhost:3000')
+  // mainWindow.loadURL('http://localhost:3000')
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
@@ -65,9 +71,9 @@ mainWindow.loadURL(startUrl);
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', ()=>{
-  BrowserWindow.addDevToolsExtension(
-    path.join(os.homedir(), '/AppData/Local/Google/Chrome/User Data/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi/3.6.0_0')
- )
+//   BrowserWindow.addDevToolsExtension(
+//     path.join(os.homedir(), '/AppData/Local/Google/Chrome/User Data/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi/3.6.0_0')
+//  )
   createWindow();
   const ctxMenu = new Menu();
   ctxMenu.append(new MenuItem({

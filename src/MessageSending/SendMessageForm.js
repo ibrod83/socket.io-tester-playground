@@ -67,8 +67,12 @@ class SendMessageForm extends React.Component {
         this.props.onTypeChange(e.target.value)
     }
 
-    handleCheck = name => event => {
-        this.props.handleCheck(event.target.checked);
+    handleCallbackCheck = name => event => {
+        this.props.handleCallbackCheck(event.target.checked);
+    };
+
+    handleAutoResendCheck = name => event => {
+        this.props.handleAutoResendCheck(event.target.checked);
     };
 
     // onTimeoutChange = (e)=>{
@@ -95,12 +99,20 @@ class SendMessageForm extends React.Component {
 
         return (
             <form className={classes.root} onSubmit={this.onSubmit} autoComplete="off">
+                
                 {this.props.callbackOption && <div style={{ display: 'inline-flex', width: '100%' }}>
+                <Tooltip  enterDelay={350} placement="right" title={<Typography style={{ color: 'white' }}>
+                        Will send a callback function with every message, as the last parameter.
+                        If this callback isn't invoked after 5 seconds, the message's status will change to 'fail', allowing you to resend it.
+                        If the callback is called with some data, it will be presented in the message. Make sure your server is set to handle this.
+                </Typography>}>
+                        <InfoIcon style={{ marginTop: '10px',marginRight:'10px' }} color="default"></InfoIcon>
+                    </Tooltip>
                     <FormControlLabel
                         control={
                             <Checkbox
                                 checked={this.props.useCallback}
-                                onChange={this.handleCheck('checkedA')}
+                                onChange={this.handleCallbackCheck('checkedA')}
                                 value="checkedA"
                                 color="primary"
                             />
@@ -126,13 +138,22 @@ class SendMessageForm extends React.Component {
                     margin="normal"
                     variant="outlined"
                    />*/}
-                    <Tooltip enterDelay={350} placement="right" title={<Typography style={{ color: 'white' }}>
-                        Will send a callback function with every message, as the last parameter.
-                        If this callback isn't invoked after 5 seconds, the message's status will change to 'fail', allowing you to resend it.
-                        If the callback is called with some data, it will be presented in the message. Make sure your server is set to handle this.
-                </Typography>}>
-                        <InfoIcon style={{ marginTop: '10px' }} color="default"></InfoIcon>
-                    </Tooltip>
+                   
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={this.props.shouldAutoResend}
+                                onChange={this.handleAutoResendCheck('checkedB')}
+                                value="checkedB"
+                                color="primary"
+                            />
+
+                        }
+                        label="Automatically resend this message on reconnect"
+                    >
+
+                    </FormControlLabel>
+                   
 
                 </div>}
 

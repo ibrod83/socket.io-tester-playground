@@ -1,14 +1,10 @@
 import React, { Component } from 'react';
 import Alert from './Alert';
-import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import { observer } from 'mobx-react';
-import Tabs from '@material-ui/core/Tabs';
-import AppBar from '@material-ui/core/AppBar';
-import RemovableTab from './Utilities/RemovableTab';
-import AddIcon from '@material-ui/icons/Add';
+
 import Messages from './Messages';
 import RegisteredEvents from './RegisteredEvents';
 import uuid from 'uuid';
@@ -42,50 +38,13 @@ export default observer(
 
       super(props);
 
-      const instance0 = this.generateInstance();//Create the main instance(tab)
+
       this.state = {
-        instances: [instance0],//Each instance has its own socket, messages and events. Represented by a tab.
-        activeInstance: instance0.id//The instance represented by the active tab.
-      }
-    }  
-
-
-
-
-    getActiveInstance = () => {
-      console.log(this.state)
-      return this.state.instances.filter(instance => instance.id === this.state.activeInstance)[0]
-    }
-
-
-
-    addInstance = () => {
-      const instance = this.generateInstance();
-      this.setState((state) => {
-        return {
-          instances: [...state.instances, instance],
-          activeInstance: instance.id
-        }
-      })
-    }
-
-    doesInstanceExist(instanceId) {//Used by async operations.
-      const instance = this.state.instances.filter(instance => instance.id === instanceId);
-      if (instance.length > 0) {
-        return true
-      }
-      return false;
-    }
-
-
-    generateInstance = () => {//Initial structure of an instance.
-
-      const instance = {
-        address: "https://socketio-test-tool-backend.herokuapp.com/",
-        id: uuid(),//The unique identifier of the instance.
+        address: "http://localhost:3001/multiple",
+        // id: uuid(),//The unique identifier of the this.state.
         socket: null,
         configString: "",
-        messages: [],//All messages sent/received in this instance.
+        messages: [],//All messages sent/received in this this.state.
         args: [//The arguments that will be sent with the message(initial single argument of type string).
           {
             message: "",
@@ -93,18 +52,22 @@ export default observer(
             type: 'String'
           }
         ],
+        shouldAutoResendMessage: false,
+        autoResendMessages: {},//Dictionary by eventName
         useCallback: false,//Whether or not a "callback" should be used(relevant only for SocketIO).
         activeArg: 0,//The active argument.
         eventName: '',
         connectionType: 'SocketIO',//Either "SocketIO" or "native".
+        // connectionType: 'native',//Either "SocketIO" or "native".
         registeredEvents: {},
         anonymousEvents: {},//Anonymous(those that the user didn't register) events are used for intercepting all incoming events, in SocketIO
         allEventsChecked: false,
         connectionStatus: "disconnected"//Disconnected, connected, reconnecting,reconnect,
       }
-
-      return instance;
     }
+
+
+
 
     createConfigObjectFromString = (str) => {//Evaluates the optional configuration string as JS.
       if (!str)
@@ -116,73 +79,56 @@ export default observer(
 
     }
 
-    onHeaderValueChange = (name, val) => {
+    connect = (address, configString) => {
 
-      const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
-
-      const { instances, instance } = this.getInstanceSlice(instanceId);
-
-      instance[name] = val;
-
-      this.setState(() => ({ instances }));
-
-    }
-
-
-
-    connect = (address, configString) => {//Fired after a certain instance(tab) wants to create the initial connection
-
-
-      console.log('connecting');
-
-
-      const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
-
-      const { instances, instance } = this.getInstanceSlice(instanceId);
-
-      instance.connectionStatus = 'connecting';
+      const connectionStatus = 'connecting';
 
       const parsedConfig = this.createConfigObjectFromString(configString);
 
 
 
-      if (instance.socket) {
-        instance.socket.disconnect();
+      if (this.state.socket) {
+        this.state.socket.disconnect();
       }
 
       // debugger;
 
-      if (instance.connectionType === 'native') {
+      if (this.state.connectionType === 'native') {
         // debugger;
-        var socket = instance.socket = new NativeSocket();
+        var socket = new NativeSocket();
+        socket.on('message',(data)=>{//If it's a native socket, only one event is relevant: "message".
+          this.addMessageToState('message', [data], false)
+        })
       } else {
 
-        var socket = instance.socket = new SocketIO();
+        var socket = new SocketIO();
       }
 
       // debugger;
-      this.setState(() => ({ instances }));
+      this.setState(() => ({ socket, connectionStatus }));
 
 
       // debugger;
       parsedConfig ? socket.connect(address, parsedConfig) : socket.connect(address);
-
+      // debugger;
+      // console.log(typeof socket)
+     
+        // debugger;
+        
+    
 
       socket.on('connect', () => {
 
-        socket.on('message', (data) => {
-          // debugger;
-          this.addMessageToState(instanceId, 'message', [data], false)
-        })
 
-        const { instances, instance } = this.getInstanceSlice(instanceId);
 
         console.log('connected!')
 
-        instance.connectionStatus = 'connected';
-        instance.address = address;
 
-        this.setState(() => ({ instances }));
+
+        this.setState(() => ({
+          connectionStatus: 'connected',
+          address
+        }));
 
       });
 
@@ -193,10 +139,7 @@ export default observer(
         if (reason === 1008) {
           createAlertAction('error', 'Disconnected from the server');
 
-          const instanceId = this.getInstanceBySocketId(socket.id).id;
-
-
-          this.disconnectManually(instanceId);
+          this.disconnectManually();
 
         }
         // else the socket will automatically try to reconnect
@@ -204,16 +147,12 @@ export default observer(
 
 
       socket.on('connecting', (error) => {
-        // console.log('Error connecting!', state)
 
-        const { instances, instance } = this.getInstanceSlice(instanceId);
 
-        instance.connectionStatus = "connecting";
         console.log('connecting');
 
-        // store.alertOpen = false;
 
-        this.setState(() => ({ instances }));
+        this.setState(() => ({ connectionStatus: "connecting" }));
 
       });
 
@@ -226,33 +165,32 @@ export default observer(
       });
 
 
-      socket.on('reconnect', (attemptNumber) => {
-
-        const { instances, instance } = this.getInstanceSlice(instanceId);
-
-        instance.connectionStatus = "connected";
+      socket.on('reconnect', () => {
+        const autoResendMessages = this.state.autoResendMessages;
+        for(let i in autoResendMessages){
+          const {eventName,args,useCallback} = autoResendMessages[i];
+          this.submitMessage(eventName,args,useCallback);
+        }
         console.log('reconnected');
 
         store.alertOpen = false;
 
-        this.setState(() => ({ instances }));
+        this.setState(() => ({ connectionStatus: "connected" }));
 
       });
 
 
-      socket.on('reconnecting', (attemptNumber) => {
+      socket.on('reconnecting', () => {
         console.log('reconnecting');
         // debugger;
 
-        const { instances, instance } = this.getInstanceSlice(instanceId);
 
-        instance.connectionStatus = "reconnecting";
 
-        this.setState(() => ({ instances }));
+        this.setState(() => ({ connectionStatus: "reconnecting" }));
 
       });
 
-      this.repeatEventRegistration(instance);//In case the user manually disconnected and reconnected, the events need to be re-registered.
+      this.repeatEventRegistration();//In case the user manually disconnected and reconnected, the events need to be re-registered.
 
 
     }
@@ -280,9 +218,8 @@ export default observer(
 
     onDisconnectSubmit = () => {
 
-      const instanceId = this.state.activeInstance;
 
-      this.disconnectManually(instanceId);
+      this.disconnectManually();
     }
 
 
@@ -290,53 +227,53 @@ export default observer(
 
     onConnectionTypeChange = (connectionType) => {
       console.log('type', connectionType)
-      const instanceId = this.state.activeInstance;//The connect function is relevant to the currently active instance(tab).
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
-      instance.connectionType = connectionType;
-
-      this.setState(() => ({ instances }));
+      this.setState(() => ({
+        connectionType
+      }));
     }
 
 
 
-    repeatEventRegistration = (instance) => {
-      if (Object.keys(instance.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
+    repeatEventRegistration = () => {
+      if (Object.keys(this.state.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
         console.log('re-registering events');
-        for (let event of Object.keys(instance.registeredEvents)) {
-          this.registerEvent(instance.id, event);
+        for (let event of Object.keys(this.state.registeredEvents)) {
+          this.registerEvent(event);
         }
       }
 
-      if (instance.allEventsChecked) {
-        this.listenToAllEvents(instance.id, true)
+      if (this.state.allEventsChecked) {
+        this.listenToAllEvents(true)
       }
     }
 
 
-    registerEvent = (instanceId, eventName) => {
+    registerEvent = (eventName) => {
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
-      const socket = instance.socket;//The socket associated with this instance.
+      const socket = this.state.socket;//The socket associated with this this.state.
 
       if (socket) {
-        this.registerEventToSocket(instanceId, socket, eventName)
+        this.registerEventToSocket(socket, eventName)
       }
 
-      instance.registeredEvents[eventName] = { name: eventName };//"instance" is not to be confused with the one from the callback scope.
 
-      this.setState(() => ({ instances }));
+      this.setState(() => ({
+        registeredEvents: {
+          ...this.state.registeredEvents,
+          [eventName]: { name: eventName }
+        }
+      }));
 
     }
 
-    registerEventToSocket = (instanceId, socket, eventName) => {
+    registerEventToSocket = (socket, eventName) => {
       socket.off(eventName);
 
       socket.on(eventName, (arg1, arg2, arg3) => {
         console.log('on:', eventName, arg1, arg2, arg3)
-        // this.addMessageToState(instanceId, eventName, args, false)
       })
       socket.on(eventName, (...args) => {
         console.log('on:', eventName, args)
@@ -352,53 +289,39 @@ export default observer(
 
         }
 
-        this.addMessageToState(instanceId, eventName, args, false)
+        this.addMessageToState(eventName, args, false)
       })
     }
 
 
-    addMessageToState = (instanceId, eventName, args, owner, status) => {
+    addMessageToState = (eventName, args, owner, status) => {
 
       const messageId = uuid();
-
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
       const time = this.getTime();
       // debugger;
       //*****UNDESRSTAND WHY THIS WASNT WORKING!!! */
-      // instance.messages.push({ id: messageId, eventName, time, data, owner, status: 'pending' })//Adding a message to the instance.
-      instance.messages = [...instance.messages, { id: messageId, eventName, time, args, owner, status }]
+      // this.state.messages.push({ id: messageId, eventName, time, data, owner, status: 'pending' })//Adding a message to the this.state.
 
-      this.setState(() => ({ instances }));
+      this.setState(() => ({
+        messages: [
+          ...this.state.messages,
+          { id: messageId, eventName, time, args, owner, status }
+        ]
+      }));
 
       return messageId;
 
     }
 
 
-    getInstanceSlice = (id) => {//This function returns COPIES of both the entire instances array, and the specific instance object,
-      //to be used in setState by the calling function.
-
-      const instances = [...this.state.instances];//Copy the instances.
-
-      let instance;
-      instances.forEach((ins, index) => {
-        if (ins.id === id) {
-          instance = instances[index];//The actual instance
-        }
-      })
-      return { instance, instances };//Return an object containing both.
-    }
 
 
+    listenToAllEvents = (on) => {//Will make an instance listen to every incoming socketIO message, prompting addition of the message to the
+      //this.state.messages array.
 
 
-    listenToAllEvents = (instanceId, on) => {//Will make an instance listen to every incoming socketIO message, prompting addition of the message to the
-      //instance.messages array.
-
-      const { instance } = this.getInstanceSlice(instanceId);
-
-      const socket = instance.socket;
+      const socket = this.state.socket;
 
 
       // const that = this;
@@ -407,16 +330,16 @@ export default observer(
         debugger;
 
         socket.listenToAllEvents(true, (eventName) => {//Passing a callback to be executed every time an anonymous event occurs.
-          this.registerAnonymousEvent(instanceId, eventName)//Registers the event
+          this.registerAnonymousEvent(eventName)//Registers the event
         })
 
       } else {
         // debugger;
-        // socket.onevent = instance.originalOnevent;
+        // socket.onevent = this.state.originalOnevent;
 
         socket.listenToAllEvents(false);
 
-        this.unregisterAnonymousEvents(instanceId)
+        this.unregisterAnonymousEvents()
 
       }
 
@@ -424,54 +347,56 @@ export default observer(
 
 
 
-    registerAnonymousEvent = (instanceId, eventName) => {//This registers a callback for an event coming from SocketIO's Socket.prototype.onevent function.
+    registerAnonymousEvent = (eventName) => {//This registers a callback for an event coming from SocketIO's Socket.prototype.onevent function.
       console.log('registering anonymous event:', eventName)
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
-      instance.anonymousEvents[eventName] = { name: eventName };
 
-      const socket = instance.socket;
+      const socket = this.state.socket;
 
       if (socket) {
 
-        this.registerEventToSocket(instanceId, socket, eventName)
+        this.registerEventToSocket(socket, eventName)
 
       }
 
-      this.setState(() => ({ instances }));
+      this.setState(() => {
+        return {
+          anonymousEvents: {
+            ...this.state.anonymousEvents,
+            [eventName]: { name: eventName }
+          }
+        }
+      })
+
+
 
     }
 
 
-    unregisterAnonymousEvents = (instanceId) => {//Clear all anonymous events for the given instance.
+    unregisterAnonymousEvents = () => {//Clear all anonymous events for the given this.state.
       // debugger;
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
-      const socket = instance.socket;
+      const socket = this.state.socket;
 
-      for (let event in instance.anonymousEvents) {
-        if (!instance.registeredEvents.hasOwnProperty(event)) {
+      for (let event in this.state.anonymousEvents) {
+        if (!this.state.registeredEvents.hasOwnProperty(event)) {
           socket.off(event)
         }
 
       }
-      instance.anonymousEvents = {}
 
-      this.setState(() => ({ instances }));
+      this.setState(() => ({ anonymousEvents: {} }));
     }
 
 
 
     onMessagesDelete = () => {//Fired when the user deletes all messages of an instance
 
-      const instanceId = this.state.activeInstance;
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
-      instance.messages = [];
 
-      this.setState(() => ({ instances }));
+      this.setState(() => ({ messages: [] }));
 
     }
 
@@ -481,48 +406,88 @@ export default observer(
 
 
 
-    disconnectManually = (instanceId) => {
+    disconnectManually = () => {
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
-
-      const socket = instance.socket;
+      const socket = this.state.socket;
 
       console.log('disconnected manually')
-      // debugger;
-      // debugger;
+
       socket.disconnect();
 
-      instance.connectionStatus = 'disconnected';
 
-      this.setState(() => ({ instances }));
+
+      this.setState(() => ({
+        connectionStatus: "disconnected"
+      }));
     }
 
+    createAutoResendMessage = (eventName, args, useCallback) => {
+      const messageObject = {
+        eventName,
+        args,
+        useCallback
+      }
+
+      this.setState(() => {
+        const messages = { ...this.state.autoResendMessages }
+        if (messages[eventName]) {
+          messages[eventName] = messageObject;
+          return {
+            autoResendMessages: messages
+          }
+        } else {
+          return {
+            autoResendMessages: {
+              ...this.state.autoResendMessages,
+              [eventName]: messageObject
+            }
+          }
+        }
+
+
+      })
+    }
 
     onMessageSubmit = (eventName, args, useCallback) => {
-      const instanceId = this.state.activeInstance;
+      this.submitMessage(eventName, args, useCallback)
+      if (this.state.shouldAutoResendMessage) {
+        this.createAutoResendMessage(eventName, args, useCallback);
+      }else{
+        if(this.state.autoResendMessages[eventName]){
+          debugger;
+          this.removeAutoResendMessage(eventName)
+        }
+        
+      }
+    }
 
-      const { instance } = this.getInstanceSlice(instanceId);
+    removeAutoResendMessage = (eventName)=>{
+      const autoResendMessages = {...this.state.autoResendMessages};
+      delete autoResendMessages[eventName];      
+      this.setState(()=>{
+        return {autoResendMessages};
+      })
+    }
 
+    submitMessage = (eventName, args, useCallback) => {
+      const socket = this.state.socket;
 
-      const socket = instance.socket;
+      const messageId = this.addMessageToState(eventName, args, true, useCallback && 'pending');
 
-      const messageId = this.addMessageToState(instanceId, eventName, args, true, useCallback && 'pending');
-
-      const callback = useCallback ? this.createAcknowledgementHandler(instanceId, messageId) : null;
+      const callback = useCallback ? this.createAcknowledgementHandler(messageId) : null;
 
       this.sendMessageToServer(socket, eventName, args, callback);
     }
 
 
     onMessageComponentPropChange = (newStateObj) => {
-      const instanceId = this.state.activeInstance;
 
-      const { instance, instances } = this.getInstanceSlice(instanceId);
+      const state = { ...this.state };
 
       for (let prop in newStateObj) {
-        instance[prop] = newStateObj[prop];
+        state[prop] = newStateObj[prop];
       }
-      this.setState(() => ({ instances }))
+      this.setState(() => ({ ...state }))
     }
 
 
@@ -530,20 +495,19 @@ export default observer(
 
 
 
-    onMessageFail = (instanceId, messageId) => {//Fired when a message fails to receive a callback after a certain period of time.
-      this.changeMessage(instanceId, messageId, { status: 'fail' })
+    onMessageFail = (messageId) => {//Fired when a message fails to receive a callback after a certain period of time.
+      this.changeMessage(messageId, { status: 'fail' })
     }
 
 
 
 
-    createAcknowledgementHandler = (instanceId, messageId) => {//Creates the logic to handle the message success/failure.
+    createAcknowledgementHandler = (messageId) => {//Creates the logic to handle the message success/failure.
       // debugger;
       var timeoutId = setTimeout(() => {//Timeout function that waits for the message callback.
 
-        if (this.doesInstanceExist(instanceId)) {//This condition is to make sure, the instance still exists when the callback is fired.
-          this.onMessageFail(instanceId, messageId);
-        }
+        this.onMessageFail(messageId);
+
 
       }, 5000);
 
@@ -555,7 +519,7 @@ export default observer(
         // debugger;
 
 
-        this.changeMessage(instanceId, messageId, { status: 'success', callbackData });
+        this.changeMessage(messageId, { status: 'success', callbackData });
 
 
       }
@@ -582,22 +546,21 @@ export default observer(
 
 
 
-    onMessageResend = (instanceId, messageId) => {//Fired when the user tries to resend a failed message.
+    onMessageResend = (messageId) => {//Fired when the user tries to resend a failed message.
       // debugger;
 
-      this.changeMessage(instanceId, messageId, { status: 'pending' });
+      this.changeMessage(messageId, { status: 'pending' });
 
-      const { instance } = this.getInstanceSlice(instanceId);
 
-      const message = instance.messages.filter(message => message.id === messageId)[0];
+      const message = this.state.messages.filter(message => message.id === messageId)[0];
 
       const eventName = message.eventName;
 
-      const socket = instance.socket;
+      const socket = this.state.socket;
 
       const args = message.args;
 
-      const callback = this.createAcknowledgementHandler(instanceId, messageId);
+      const callback = this.createAcknowledgementHandler(messageId);
 
       this.sendMessageToServer(socket, eventName, args, callback);
 
@@ -606,14 +569,12 @@ export default observer(
 
 
 
-    changeMessage = (instanceId, messageId, obj) => {//Function that changes properties of a message(particularly "status").
+    changeMessage = (messageId, obj) => {//Function that changes properties of a message(particularly "status").
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
 
-      // const multipleProps = typeof prop === 'object' && Array.isArray(prop);
 
       this.setState(() => {
-        const messages = instance.messages.map((message) => {
+        const messages = this.state.messages.map((message) => {
           if (message.id === messageId) {
 
             return {
@@ -624,64 +585,47 @@ export default observer(
             return message;
           }
         })
-        instance.messages = messages;
         return {
-          instances
+          messages
         }
       })
     }
 
 
-    onEventSubmit = (instance, eventName) => {//Fired when a user adds an event listener manually.
-      console.log(instance, eventName)
-      this.registerEvent(instance, eventName);
+    onEventSubmit = (eventName) => {//Fired when a user adds an event listener manually.
+      console.log(eventName)
+      this.registerEvent(eventName);
     }
 
 
 
     onEventDelete = (name) => {//Fired when a user deletes an event listener manually.
 
-      const instanceId = this.state.activeInstance;
 
-      const { instances, instance } = this.getInstanceSlice(instanceId);
-
-      const socket = instance.socket;
+      const socket = this.state.socket;
 
       socket.off(name);
 
-      const oldEvents = instance.registeredEvents
+      const oldEvents = { ...this.state.registeredEvents }
 
       delete oldEvents[name];
 
       this.setState({
-        instances
+        registeredEvents: oldEvents
       })
     }
 
 
-    getSocketByInstanceId = (instanceId) => {
-      const instance = this.state.instances.filter(instance => instance.id === instanceId)[0];
-      return instance.socket;
-    }
 
-    getInstanceBySocketId = (socketId) => {
-      const instance = this.state.instances.filter(instance => instance.socket.id === socketId)[0];
-      return instance;
-    }
-
-
-
-    handleAllEventsCheck = name => event => {//Fired when the user toggles the listen to all events checkbox on a particular instance.
-
-      const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
+    handleAllEventsCheck = name => event => {//Fired when the user toggles the listen to all events checkbox on a particular this.state.
 
       const checked = event.target.checked;
 
-      instance.allEventsChecked = checked;
+      this.setState(() => ({
+        allEventsChecked: checked
+      }));
 
-      this.setState(() => ({ instances }));
-
-      this.listenToAllEvents(instance.id, checked);
+      this.listenToAllEvents(checked);
     };
 
 
@@ -711,88 +655,6 @@ export default observer(
     };
 
 
-    changeActiveInstance = (id) => {//Fired when user changes the tab.
-      // debugger;
-      this.setState(() => ({ activeInstance: id }))
-
-    }
-
-
-    createNewTab = () => {
-      const instance = this.generateInstance();//When user creates a new tab, an instance is created(with socket as null).
-      this.setState((state) => ({
-        instances: [...state.instances, instance]
-      }))
-
-      this.changeActiveInstance(instance.id);
-
-    }
-
-
-
-    destroyInstance = (id) => {//Fired when a user destroys a tab.
-
-      // e.stopPropagation();
-      // debugger;
-      console.log('destroy instance!')
-
-      const { instances, instance } = this.getInstanceSlice(id);
-      console.log(instance.socket);
-
-      if (instance.socket) {//Disconnect the socket if exists.
-        instance.socket.disconnect();
-      }
-
-
-
-      const tabIndex = instances.indexOf(instance);
-
-      const tabLength = instances.length;
-
-      let newIndex;
-
-      if (tabLength - tabIndex === 1) {//Decide which tab will be active after update.
-        newIndex = tabIndex - 1
-      } else {
-        newIndex = tabIndex
-      }
-
-      const newInstances = instances.filter(instance => instance.id !== id);//New instances array, without the deleted one.
-
-      const lastInstance = newInstances[newIndex];
-
-      this.setState({
-        activeInstance: lastInstance.id,
-        instances: newInstances,
-
-      });
-
-    }
-
-
-
-    getTabAddress = (instance) => {//Get the address of the current tab. Needed for communication with the Header component, which also has its own independent "address" state.
-      const address = instance.address;
-      const connectionStatus = instance.connectionStatus;
-
-      // debugger;
-      if (connectionStatus === 'connected') {
-
-        if (address.length > 14) {
-          return address.slice(0, 14) + '...';
-        } else {
-          return address;
-        }
-
-      }
-
-      else if (connectionStatus === 'disconnected') {
-        return 'New connection'
-      }
-      else {
-        return connectionStatus + '...'
-      }
-    }
 
     onScrollToBottom = () => {
       console.log('bottom!')
@@ -802,56 +664,36 @@ export default observer(
       console.log('Top!')
     }
 
+    onHeaderValueChange = (name, val) => {
+
+
+      this.setState(() => ({
+        [name]: val
+      }));
+
+    }
+
 
 
 
     render() {
 
-      const { instance, instances } = this.getInstanceSlice(this.state.activeInstance)//Get the currently active instance.
 
-      // const { connectionStatus, allEventsChecked, registeredEvents, messages, address, configString } = instance;//Extract the props.
-      const { connectionStatus, allEventsChecked, connectionType, eventName, args, activeArg, useCallback, registeredEvents, address, configString } = instance;//Extract the props.
+      const { connectionStatus, allEventsChecked, connectionType, eventName, args, activeArg, useCallback, registeredEvents, address, configString } = this.state;//Extract the props.
 
-      // console.log('length from app render', messages.length)
-      const activeInstanceId = instance.id;
-      console.log('activeinstanceid', activeInstanceId)
-
-      const tabIndex = instances.indexOf(instance);
-
-      const firstInstance = instances[0]
-
-      console.log('tab index', tabIndex)
 
       return (
 
         <MuiThemeProvider theme={theme}>
-        
+
           <div id="wrapper">
-            <AppBar color="default" position="static">
-              <Tabs indicatorColor="primary" textColor="primary" value={tabIndex} onChange={this.handleChange}>
-                {instances.map(instance =>
-                  <RemovableTab
-                    //  color="primary"
-                    click={() => { this.changeActiveInstance(instance.id) }}
-                    label={this.getTabAddress(instance)}
-                    onClose={() => { this.destroyInstance(instance.id) }}
-                    showIcon={instance.id !== firstInstance.id}
-                  />
 
-                )}
-
-                <IconButton onClick={this.createNewTab} aria-label="New tab">
-                  <AddIcon />
-                </IconButton>
-
-              </Tabs>
-            </AppBar>
 
             <Header
               onConnectionTypeChange={this.onConnectionTypeChange}
               onAddressChange={(val) => { this.onHeaderValueChange('address', val) }}
               onConfigStringChange={(val) => { this.onHeaderValueChange('configString', val) }}
-              key={activeInstanceId}
+              // key={activeInstanceId}
               address={address}
               connectionType={connectionType}
               configString={configString}
@@ -887,7 +729,7 @@ export default observer(
                     ]}
                     onSubmit={
                       (eventName, args, useCallback) => {
-                        instance.connectionType === 'SocketIO' ?
+                        this.state.connectionType === 'SocketIO' ?
                           this.onMessageSubmit(eventName, args, useCallback) :
                           this.onMessageSubmit('message', [args[0]])
                       }
@@ -912,7 +754,7 @@ export default observer(
                     label="Listen to all incoming events"
                   />
 
-                  <AddEvent connected={connectionStatus === 'connected'} onSubmit={(eventName) => { this.onEventSubmit(activeInstanceId, eventName) }}></AddEvent>
+                  <AddEvent connected={connectionStatus === 'connected'} onSubmit={(eventName) => { this.onEventSubmit(eventName) }}></AddEvent>
                   {Object.keys(registeredEvents).length > 0 && (
 
                     <div id="registered_events" >
@@ -923,23 +765,15 @@ export default observer(
                 </div>}
 
               </div>
-
-
-              {/*Rendering all instances into the DOM and showing only one of them, for performance reasons(avoiding re-rendering of all Message components,
-                 when the active instance changes). 
-              */}
-              {this.state.instances.map((instance) => {
-                return <Messages
-                  key={instance.id}
-                  onScrollToTop={this.onScrollToTop}
-                  onScrollToBottom={this.onScrollToBottom}
-                  show={activeInstanceId === instance.id ? true : false}//Tell the component if it should be visible in the DOM
-                  onMessagesDelete={this.onMessagesDelete}
-                  onMessageResend={(messageId) => { this.onMessageResend(instance.id, messageId) }}
-                  instanceId={instance.id}
-                  messages={instance.messages} />
-
-              })}
+              <Messages
+                // key={this.state.id}
+                onScrollToTop={this.onScrollToTop}
+                onScrollToBottom={this.onScrollToBottom}
+                show={true}//Tell the component if it should be visible in the DOM
+                onMessagesDelete={this.onMessagesDelete}
+                onMessageResend={(messageId) => { this.onMessageResend(messageId) }}
+                // instanceId={this.state.id}
+                messages={this.state.messages} />
 
             </div>
 
@@ -956,21 +790,3 @@ export default observer(
 
 
 
-// createMockMessages = (num) => {
-
-//   const messages = []
-//   for (let i = 0; i < num; i++) {
-//     messages.push({
-//       id: uuid(),
-//       owner: true,
-//       time: this.getTime(),
-//       eventName: this.state.activeInstance,
-//       args: [i + 1]
-
-//     })
-//   }
-//   const { instances, instance } = this.getInstanceSlice(this.state.activeInstance);
-//   instance.messages = messages;
-//   this.setState(() => ({ instances }))
-
-// }

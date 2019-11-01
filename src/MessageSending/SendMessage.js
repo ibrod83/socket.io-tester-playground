@@ -190,12 +190,19 @@ export default class SendMessage extends React.Component {
     }
 
     onTypeChange = (arg, type) => {
+        console.log('type changed')
         const args = [...this.props.args];
 
         const index = args.indexOf(arg);
         args[index].type = type
-        args[index].message = ""
+        if(type === 'Boolean' ){
+            args[index].message = true;     
+        }else{
+           args[index].message = "" 
+        }
+        
         args[index].error = false;
+
         this.props.onPropChange({args})
         // this.setState((state) => {
         //     return {
@@ -208,8 +215,14 @@ export default class SendMessage extends React.Component {
     //     this.setState({timeout:val})
     // }
 
-    handleCheck = (checked) => {
+    handleCallbackCheck = (checked) => {
         this.props.onPropChange({useCallback:checked})
+        // this.setState({ useCallback: checked });
+    }
+
+    handleAutoResendCheck = (checked) => {
+        // debugger;
+        this.props.onPropChange({shouldAutoResendMessage:checked})
         // this.setState({ useCallback: checked });
     }
 
@@ -269,8 +282,10 @@ export default class SendMessage extends React.Component {
                 onTypeChange={(type) => { this.onTypeChange(activeArg, type) }}
                 onEventChange={this.onEventChange}
                 onTimeoutChange={this.onTimeoutChange}
-                handleCheck={this.handleCheck}
+                handleCallbackCheck={this.handleCallbackCheck}
+                handleAutoResendCheck = {this.handleAutoResendCheck}
                 eventName={this.props.eventName}
+                shouldAutoResend = {this.props.shouldAutoResend}
                 connected={this.props.connected}></SendMessageForm>
 
         </div>

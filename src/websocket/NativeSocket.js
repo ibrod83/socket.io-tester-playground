@@ -54,6 +54,7 @@ class NativeSocket {
         })
 
         socket.addEventListener('message', ({ data }) => {
+            // debugger;
             this.emit('message', data)
         })
         return socket;

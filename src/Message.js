@@ -55,6 +55,7 @@ class Message extends React.Component {
 
 
     onDataCopy = (str) => {
+        // debugger;
         const el = document.createElement('textarea');  // Create a <textarea> element
         if (typeof str === 'object') {
             try {
@@ -187,7 +188,7 @@ class Message extends React.Component {
 
                     <div style={{ float: 'right', position: 'relative', left: '6px', bottom: '49px' }} >
                         {args.length === 1 && <Tooltip title="Copy to clipboard">
-                            <IconButton onClick={() => { this.onDataCopy(args) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
+                            <IconButton onClick={() => { this.onDataCopy(args[0]) }} ><CopyIcon fontSize="small"></CopyIcon></IconButton>
                         </Tooltip>}
 
                         {status && owner && (
