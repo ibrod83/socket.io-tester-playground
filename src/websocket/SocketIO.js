@@ -15,6 +15,7 @@ class SocketIO {
         this.originalOnevent = socket.onevent;
 
         socket.on('connect', () => {
+            this.id = socket.id;
              this.emit('connect') 
         })
 

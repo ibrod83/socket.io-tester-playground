@@ -14,7 +14,7 @@ import Header from './Header';
 import AddEvent from './AddEvent'
 import SendMessage from './MessageSending/SendMessage'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles';
-import { blue, green, grey } from '@material-ui/core/colors';
+import { blue,cyan,indigo,teal, green, grey } from '@material-ui/core/colors';
 import store from './global';
 import { handleAlertCloseAction, createAlertAction } from './global'
 import SocketIO from './websocket/SocketIO';
@@ -40,7 +40,8 @@ export default observer(
 
 
       this.state = {
-        address: "http://localhost:3001/multiple",
+        // address: "ws://localhost:3003",
+        address: "http://localhost:3001",
         // id: uuid(),//The unique identifier of the this.state.
         socket: null,
         configString: "",
@@ -86,17 +87,19 @@ export default observer(
       const parsedConfig = this.createConfigObjectFromString(configString);
 
 
-
       if (this.state.socket) {
         this.state.socket.disconnect();
+
       }
+
+
 
       // debugger;
 
       if (this.state.connectionType === 'native') {
         // debugger;
         var socket = new NativeSocket();
-        socket.on('message',(data)=>{//If it's a native socket, only one event is relevant: "message".
+        socket.on('message', (data) => {//If it's a native socket, only one event is relevant: "message".
           this.addMessageToState('message', [data], false)
         })
       } else {
@@ -112,16 +115,25 @@ export default observer(
       parsedConfig ? socket.connect(address, parsedConfig) : socket.connect(address);
       // debugger;
       // console.log(typeof socket)
-     
-        // debugger;
-        
-    
+
+      // debugger;
+
+
 
       socket.on('connect', () => {
 
+        if (this.state.connectionType === 'SocketIO') {
+          const autoResendMessages = this.state.autoResendMessages;
+          for (let i in autoResendMessages) {
+            const { eventName, args, useCallback } = autoResendMessages[i];
+            this.submitMessage(eventName, args, useCallback);
+          }
+          this.repeatEventRegistration();//Re-register all previously registered events(bu the user).
+
+        }
 
 
-        console.log('connected!')
+        console.log(socket.id, 'connected!')
 
 
 
@@ -149,7 +161,7 @@ export default observer(
       socket.on('connecting', (error) => {
 
 
-        console.log('connecting');
+        // console.log('connecting');
 
 
         this.setState(() => ({ connectionStatus: "connecting" }));
@@ -166,11 +178,7 @@ export default observer(
 
 
       socket.on('reconnect', () => {
-        const autoResendMessages = this.state.autoResendMessages;
-        for(let i in autoResendMessages){
-          const {eventName,args,useCallback} = autoResendMessages[i];
-          this.submitMessage(eventName,args,useCallback);
-        }
+
         console.log('reconnected');
 
         store.alertOpen = false;
@@ -181,7 +189,7 @@ export default observer(
 
 
       socket.on('reconnecting', () => {
-        console.log('reconnecting');
+        // console.log('reconnecting');
         // debugger;
 
 
@@ -190,7 +198,7 @@ export default observer(
 
       });
 
-      this.repeatEventRegistration();//In case the user manually disconnected and reconnected, the events need to be re-registered.
+      // this.repeatEventRegistration();//In case the user manually disconnected and reconnected, the events need to be re-registered.
 
 
     }
@@ -237,6 +245,7 @@ export default observer(
 
 
     repeatEventRegistration = () => {
+      debugger;
       if (Object.keys(this.state.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
         console.log('re-registering events');
         for (let event of Object.keys(this.state.registeredEvents)) {
@@ -422,6 +431,8 @@ export default observer(
     }
 
     createAutoResendMessage = (eventName, args, useCallback) => {
+
+
       const messageObject = {
         eventName,
         args,
@@ -449,23 +460,29 @@ export default observer(
     }
 
     onMessageSubmit = (eventName, args, useCallback) => {
+      
       this.submitMessage(eventName, args, useCallback)
-      if (this.state.shouldAutoResendMessage) {
-        this.createAutoResendMessage(eventName, args, useCallback);
-      }else{
-        if(this.state.autoResendMessages[eventName]){
-          debugger;
-          this.removeAutoResendMessage(eventName)
+
+      if (this.state.connectionType === 'SocketIO') {
+        if (this.state.shouldAutoResendMessage) {
+          this.createAutoResendMessage(eventName, args, useCallback);
+        } else {
+          if (this.state.autoResendMessages[eventName]) {
+            debugger;
+            this.removeAutoResendMessage(eventName)
+          }
+
         }
-        
       }
+
+
     }
 
-    removeAutoResendMessage = (eventName)=>{
-      const autoResendMessages = {...this.state.autoResendMessages};
-      delete autoResendMessages[eventName];      
-      this.setState(()=>{
-        return {autoResendMessages};
+    removeAutoResendMessage = (eventName) => {
+      const autoResendMessages = { ...this.state.autoResendMessages };
+      delete autoResendMessages[eventName];
+      this.setState(() => {
+        return { autoResendMessages };
       })
     }
 
