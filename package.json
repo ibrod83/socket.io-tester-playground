@@ -5,21 +5,20 @@
   "main": "main.js",
   "private": true,
   "dependencies": {
-    "@material-ui/core": "^3.9.2",
+    "@material-ui/core": "^3.9.4",
     "@material-ui/icons": "^3.0.2",
-    "build": "^0.1.4",
-    "express": "^4.16.4",
-    "mobx": "^5.9.0",
-    "mobx-react": "^5.4.3",
-    "moment": "^2.24.0",
-    "node-sass": "^4.12.0",
-    "react": "^16.8.2",
-    "react-dom": "^16.8.2",
+    "express": "^4.17.1",
+    "mobx": "^5.15.4",
+    "mobx-react": "^5.4.4",
+    "moment": "^2.25.3",
+    "node-sass": "^4.14.0",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
     "react-inspector": "^2.3.1",
     "react-scripts": "2.1.5",
-    "react-virtualized": "^9.21.0",
-    "socket.io-client": "^2.2.0",
-    "uuid": "^3.3.2"
+    "react-virtualized": "^9.21.2",
+    "socket.io-client": "^2.3.0",
+    "uuid": "^3.4.0"
   },
   "scripts": {
     "electron": "electron .",
@@ -40,9 +39,9 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "electron": "^4.0.5",
+    "electron": "^4.2.12",
     "electron-devtools-installer": "^2.2.4",
-    "electron-reload": "^1.4.0",
+    "electron-reload": "^1.5.0",
     "electron-reloader": "^0.2.0"
   }
 }
