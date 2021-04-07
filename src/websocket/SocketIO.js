@@ -1,5 +1,5 @@
 
-import io from 'socket.io-client';
+import { io } from "socket.io-client";
 
 class SocketIO {
     socket = null;
@@ -10,6 +10,7 @@ class SocketIO {
     events = {}//A dictionary of events.
 
     connect(address, config) {
+        // debugger;
         const socket = io(address, config);
         this.socket = socket;
         this.originalOnevent = socket.onevent;
@@ -46,7 +47,8 @@ class SocketIO {
             this.emit('reconnect')  
         })
 
-        socket.on('connect_error', () => {
+        socket.on('connect_error', (error) => {
+            // debugger;
              this.emit('error','Error connecting to the server');
         })
 

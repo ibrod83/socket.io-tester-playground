@@ -207,7 +207,7 @@ export default observer(
       // debugger;
       if (!this.validateAddress(address, connectionType))
         return createAlertAction('error', 'Invalid address')
-
+      console.log(config);
       this.connect(address, config);
     }
 
@@ -245,7 +245,7 @@ export default observer(
 
 
     repeatEventRegistration = () => {
-      debugger;
+      // debugger;
       if (Object.keys(this.state.registeredEvents).length > 0) {//PROBLEM!!!!!!!! fix it
         console.log('re-registering events');
         for (let event of Object.keys(this.state.registeredEvents)) {
@@ -336,7 +336,7 @@ export default observer(
       // const that = this;
 
       if (on) {
-        debugger;
+        // debugger;
 
         socket.listenToAllEvents(true, (eventName) => {//Passing a callback to be executed every time an anonymous event occurs.
           this.registerAnonymousEvent(eventName)//Registers the event
@@ -468,7 +468,7 @@ export default observer(
           this.createAutoResendMessage(eventName, args, useCallback);
         } else {
           if (this.state.autoResendMessages[eventName]) {
-            debugger;
+            // debugger;
             this.removeAutoResendMessage(eventName)
           }
 
