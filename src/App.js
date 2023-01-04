@@ -8,7 +8,7 @@ import { observer } from 'mobx-react';
 import Messages from './Messages';
 import RegisteredEvents from './RegisteredEvents';
 import uuid from 'uuid';
-import './App.scss';
+import './App.css';
 import moment from 'moment';
 import Header from './Header';
 import AddEvent from './AddEvent'

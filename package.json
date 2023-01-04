@@ -11,11 +11,10 @@
     "mobx": "^5.15.7",
     "mobx-react": "^5.4.4",
     "moment": "^2.29.1",
-    "node-sass": "^4.14.1",
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
-    "react-inspector": "^2.3.1",
-    "react-scripts": "2.1.5",
+    "react-inspector": "^6.0.1",
+    "react-scripts": "5.0.1",
     "react-virtualized": "^9.22.3",
     "socket.io-client": "^3.1.3",
     "uuid": "^3.4.0"
@@ -39,9 +38,9 @@
     "not op_mini all"
   ],
   "devDependencies": {
-    "electron": "^4.2.12",
-    "electron-devtools-installer": "^2.2.4",
+    "electron": "^22.0.0",
+    "electron-devtools-installer": "^3.2.0",
     "electron-reload": "^1.5.0",
-    "electron-reloader": "^0.2.0"
+    "electron-reloader": "^1.2.3"
   }
 }
