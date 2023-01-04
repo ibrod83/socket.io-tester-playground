@@ -66,7 +66,6 @@ html {
 }
 
 #panel {
-    /* border:1px solid black; */
     width: 30%;
     padding: 10px;
     overflow-y: scroll;
@@ -74,43 +73,7 @@ html {
 
 #messages {
     padding: 10px;
-    /* border:1px solid black; */
     width: 70%;
-    /* max-width:70%; */
     overflow-y: scroll;
 }
 
- /* @media only screen and (max-width: 800px) {
-    #messages {
-        width:50%;
-    }
-
-    #panel {
-        width: 50%;
-
-    }
-  }
-
-input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus{
-    color:purple;
-}
-
-input:-internal-autofill-selected{
-    box-shadow: 0 0 0 100px #fff inset;
-}
-
-input:-webkit-autofill:selected{
-    background-color: #2196f3 !important;
-}
-
-input:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0 100px #fff inset;
-    -moz-box-shadow: 0 0 0 100px #fff inset;
-    box-shadow: 0 0 0 100px #fff inset;
-}
-
-input:-internal-autofill-previewed,
-input:-internal-autofill-selected {
-}  */
