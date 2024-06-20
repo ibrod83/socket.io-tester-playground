@@ -2,7 +2,7 @@
 
 ![Playground image](https://i.imgur.com/OaQZCC9.png)
 
-For a ready-to-use web version: https://socketio-playground-landing.vercel.app/
+For a ready-to-use web version: https://socketio-playground.ibrod83.com/
 
 ### `npm run electron`
 
