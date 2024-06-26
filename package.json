@@ -1,8 +1,8 @@
 {
-  "name": "electron-socket.io-playground",
+  "name": "socket.io-tester-playground",
   "version": "1.0.0",
   "author": "ibrod83",
-  "description": "Electron Socket.IO Playground - Develop apps without a front-end",
+  "description": "Socket.IO Tester Playground - Develop apps without a front-end",
   "homepage": "./",
   "main": "main.js",
   "private": true,

@@ -1,8 +1,8 @@
-# Electron Socket.IO Playground - Develop apps without a front-end
+# Socket.IO Tester Playground - Develop apps without a front-end
 
 ![Playground image](https://i.imgur.com/OaQZCC9.png)
 
-For a ready-to-use web version: https://socketio-playground.ibrod83.com/
+For a ready-to-use web version: https://socketio-tester-playground.vercel.app/
 
 ### `npm run electron`
 
